@@ -1,3 +1,4 @@
+import dotenv from "dotenv";
 import express from "express";
 import fs from "fs";
 import multer from "multer";
@@ -9,6 +10,11 @@ import path from "path";
 import os from "os";
 import { v2 as cloudinary } from "cloudinary";
 import serverless from "serverless-http";
+
+dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: ".env.local", override: true });
+}
 
 if (ffmpegInstaller?.path) {
   ffmpeg.setFfmpegPath(ffmpegInstaller.path);
