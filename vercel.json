@@ -8,15 +8,15 @@
   "rewrites": [
     {
       "source": "/api",
-      "destination": "/api/server?path=/api"
+      "destination": "/api/server"
     },
     {
       "source": "/api/(.*)",
-      "destination": "/api/server?path=/api/$1"
+      "destination": "/api/server"
     },
     {
       "source": "/p/(.*)",
-      "destination": "/api/server?path=/p/$1"
+      "destination": "/api/server"
     }
   ]
 }
