@@ -1,22 +1,14 @@
 {
   "version": 2,
   "functions": {
-    "api/server.js": {
+    "server.js": {
       "runtime": "nodejs18.x"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api",
-      "destination": "/api/server"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/server"
-    },
-    {
-      "source": "/p/(.*)",
-      "destination": "/api/server"
+      "src": "/.*",
+      "dest": "/server.js"
     }
   ]
 }
