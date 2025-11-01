@@ -77,6 +77,12 @@ if (!CLOUDINARY_ENABLED) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, _res, next) => {
+  if (process.env.VERCEL === "1") {
+    console.log(`[vercel] ${req.method} ${req.originalUrl} (url=${req.url})`);
+  }
+  next();
+});
+app.use((req, _res, next) => {
   req.cookies = {};
   const raw = req.headers.cookie;
   if (raw) {
@@ -1007,11 +1013,13 @@ app.use((req, res, next) => {
 });
 
 // ---------- Start ----------
+const handler = (req, res) => app(req, res);
+
 if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }
 
-export default app;
+export default handler;
 
