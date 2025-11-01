@@ -8,6 +8,7 @@ import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import path from "path";
 import os from "os";
 import { v2 as cloudinary } from "cloudinary";
+import serverless from "serverless-http";
 
 if (ffmpegInstaller?.path) {
   ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -1001,11 +1002,14 @@ app.use((req, res, next) => {
 });
 
 // ---------- Start ----------
+const handler = serverless(app);
+
 if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }
 
-export default app;
+export { app };
+export default handler;
 
