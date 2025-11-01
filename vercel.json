@@ -7,12 +7,12 @@
   },
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/api/server?path=/"
+      "source": "/api",
+      "destination": "/api/server?path=/api"
     },
     {
-      "source": "/(.*)",
-      "destination": "/api/server?path=/$1"
+      "source": "/api/(.*)",
+      "destination": "/api/server?path=/api/$1"
     }
   ]
 }
