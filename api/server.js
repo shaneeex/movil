@@ -8,6 +8,7 @@ export default function vercelExpressBridge(req, res) {
 
     if (forwardedPath) {
       req.url = forwardedPath;
+      req.originalUrl = forwardedPath;
     } else {
       const origin = `http://${req.headers.host || "localhost"}`;
       const url = new URL(req.url, origin);
@@ -16,7 +17,9 @@ export default function vercelExpressBridge(req, res) {
         const decodedPath = decodeURIComponent(pathParam);
         url.searchParams.delete("path");
         const remainingQuery = url.searchParams.toString();
-        req.url = decodedPath + (remainingQuery ? `?${remainingQuery}` : "");
+        const normalized = decodedPath + (remainingQuery ? `?${remainingQuery}` : "");
+        req.url = normalized;
+        req.originalUrl = normalized;
       }
     }
   } catch (err) {
