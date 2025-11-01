@@ -6,6 +6,7 @@ import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import path from "path";
+import { v2 as cloudinary } from "cloudinary";
 
 if (ffmpegInstaller?.path) {
   ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -21,6 +22,26 @@ if (ffprobeInstaller?.path) {
 const app = express();
 app.set("trust proxy", true);
 const PORT = 3000;
+const fsp = fs.promises;
+
+const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "298984822447826";
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+const CLOUDINARY_UPLOAD_PRESET = process.env.CLOUDINARY_UPLOAD_PRESET || "";
+const CLOUDINARY_UPLOAD_FOLDER = process.env.CLOUDINARY_UPLOAD_FOLDER || "movil/projects";
+const CLOUDINARY_HAS_CLOUD = Boolean(CLOUDINARY_CLOUD_NAME);
+const CLOUDINARY_SIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_API_SECRET);
+const CLOUDINARY_UNSIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_UPLOAD_PRESET);
+const CLOUDINARY_ENABLED = CLOUDINARY_SIGNED_UPLOAD || CLOUDINARY_UNSIGNED_UPLOAD;
+
+if (CLOUDINARY_HAS_CLOUD) {
+  cloudinary.config({
+    cloud_name: CLOUDINARY_CLOUD_NAME,
+    api_key: CLOUDINARY_API_KEY,
+    api_secret: CLOUDINARY_API_SECRET || undefined,
+    secure: true,
+  });
+}
 
 const UPLOAD_DIR = path.resolve("public/uploads");
 const DATA_FILE  = path.resolve("projects.json");
@@ -94,6 +115,121 @@ function safeUnlink(urlPath) {
     if (p === DEFAULT_VIDEO_THUMB) return;
     if (fs.existsSync(p)) fs.unlinkSync(p);
   } catch (_) { /* ignore */ }
+}
+
+function buildCloudinaryPublicId(fileName = "", resourceType = "image") {
+  const baseName = slugifyTitle(path.parse(fileName || "").name || resourceType);
+  const suffix = Date.now().toString(36);
+  const folder = (CLOUDINARY_UPLOAD_FOLDER || "").replace(/^\/+|\/+$/g, "");
+  const id = `${baseName}-${suffix}`;
+  return folder ? `${folder}/${id}` : id;
+}
+
+async function cleanupLocalFile(filePath) {
+  if (!filePath) return;
+  try {
+    await fsp.unlink(filePath);
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      console.warn("Unable to remove local upload:", err?.message || err);
+    }
+  }
+}
+
+async function uploadToCloudinary({ buffer, filePath, fileName, resourceType = "image", mimeType }) {
+  if (!CLOUDINARY_ENABLED) return null;
+
+  const uploadOptions = {
+    resource_type: resourceType,
+    folder: CLOUDINARY_UPLOAD_FOLDER || undefined,
+    overwrite: false,
+    unique_filename: true,
+  };
+
+  if (CLOUDINARY_SIGNED_UPLOAD) {
+    uploadOptions.public_id = buildCloudinaryPublicId(fileName || resourceType, resourceType);
+    if (buffer) {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        });
+        stream.end(buffer);
+      });
+    }
+    const targetPath = filePath || buffer;
+    if (!targetPath) throw new Error("No file data available for Cloudinary upload.");
+    return cloudinary.uploader.upload(targetPath, uploadOptions);
+  }
+
+  const unsignedPreset = CLOUDINARY_UPLOAD_PRESET;
+  if (!unsignedPreset) {
+    throw new Error("Cloudinary unsigned upload preset is not configured.");
+  }
+
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
+  const form = new FormData();
+
+  if (buffer) {
+    const blob = new Blob([buffer], { type: mimeType || "application/octet-stream" });
+    form.append("file", blob, fileName || `${resourceType}-upload`);
+  } else if (filePath) {
+    const fileBuffer = await fsp.readFile(filePath);
+    const blob = new Blob([fileBuffer], { type: mimeType || "application/octet-stream" });
+    form.append("file", blob, fileName || path.basename(filePath));
+  } else {
+    throw new Error("No file data available for Cloudinary upload.");
+  }
+
+  form.append("upload_preset", unsignedPreset);
+  if (CLOUDINARY_UPLOAD_FOLDER) form.append("folder", CLOUDINARY_UPLOAD_FOLDER);
+
+  const response = await fetch(uploadUrl, { method: "POST", body: form });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || "Cloudinary upload failed");
+  }
+  return data;
+}
+
+function buildCloudinaryImageThumbnail(publicId, fallbackUrl) {
+  if (!publicId || !CLOUDINARY_HAS_CLOUD) return fallbackUrl || "";
+  return cloudinary.url(publicId, {
+    resource_type: "image",
+    format: "jpg",
+    transformation: [
+      { width: 420, height: 280, crop: "fill", gravity: "auto" },
+      { quality: "auto", fetch_format: "auto" },
+    ],
+  });
+}
+
+function buildCloudinaryVideoThumbnail(publicId, fallbackUrl) {
+  if (!publicId || !CLOUDINARY_HAS_CLOUD) return fallbackUrl || DEFAULT_VIDEO_THUMB_URL;
+  return cloudinary.url(publicId, {
+    resource_type: "video",
+    format: "jpg",
+    transformation: [
+      { width: 640, height: 360, crop: "fill", gravity: "auto" },
+      { quality: "auto", fetch_format: "auto" },
+    ],
+  });
+}
+
+async function deleteCloudinaryAsset(media) {
+  if (!CLOUDINARY_SIGNED_UPLOAD) return;
+  if (!media || !media.cloudinaryId) return;
+  const resourceType =
+    media.cloudinaryResourceType ||
+    (media.type === "video" ? "video" : "image");
+  try {
+    await cloudinary.uploader.destroy(media.cloudinaryId, {
+      resource_type: resourceType,
+      invalidate: true,
+    });
+  } catch (err) {
+    console.warn("Unable to delete Cloudinary asset:", err?.message || err);
+  }
 }
 
 function normalizeCategoryInput(value) {
@@ -315,14 +451,15 @@ function requireAdmin(req, res, next) {
   return res.status(401).json({ ok: false, error: "Unauthorized" });
 }
 
-// images: compressed + thumb
-async function processImage(file) {
+// images: compressed + thumb (local fallback)
+async function processImageLocal(file) {
   const base = path.parse(file.filename).name;
   const full  = path.join(UPLOAD_DIR, `${base}-compressed.jpg`);
   const thumb = path.join(UPLOAD_DIR, `${base}-thumb.jpg`);
 
   await sharp(file.path).rotate().resize({ width: 1080, withoutEnlargement: true }).jpeg({ quality: 80 }).toFile(full);
   await sharp(file.path).rotate().resize({ width: 300 }).jpeg({ quality: 70 }).toFile(thumb);
+  await cleanupLocalFile(file.path);
 
   return {
     url: `/uploads/${path.basename(full)}`,
@@ -332,7 +469,7 @@ async function processImage(file) {
 }
 
 // videos: thumbnail via ffmpeg (fallback to generated placeholder if needed)
-async function processVideo(file) {
+async function processVideoLocal(file) {
   const savedPath = path.join(UPLOAD_DIR, file.filename);
   const thumbData = await createVideoThumbnail(savedPath, file.filename);
   return {
@@ -342,7 +479,93 @@ async function processVideo(file) {
   };
 }
 
+async function processImageCloudinary(file) {
+  const source = file.buffer || file.path;
+  if (!source) throw new Error("Image source is unavailable.");
+
+  const optimized = await sharp(source)
+    .rotate()
+    .resize({ width: 1600, withoutEnlargement: true })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+
+  const uploadResult = await uploadToCloudinary({
+    buffer: optimized,
+    fileName: file.originalname || file.filename,
+    resourceType: "image",
+    mimeType: "image/jpeg",
+  });
+
+  await cleanupLocalFile(file.path);
+
+  if (!uploadResult?.secure_url) {
+    throw new Error("Cloudinary image upload did not return a URL.");
+  }
+
+  const publicId = uploadResult.public_id || null;
+  const secureUrl = uploadResult.secure_url;
+  const thumbUrl = buildCloudinaryImageThumbnail(publicId, secureUrl) || secureUrl;
+
+  return {
+    url: secureUrl,
+    thumbnail: thumbUrl,
+    type: "image",
+    cloudinaryId: publicId,
+    cloudinaryResourceType: "image",
+  };
+}
+
+async function processVideoCloudinary(file) {
+  const uploadResult = await uploadToCloudinary({
+    filePath: file.path,
+    fileName: file.originalname || file.filename,
+    resourceType: "video",
+    mimeType: file.mimetype,
+  });
+
+  await cleanupLocalFile(file.path);
+
+  if (!uploadResult?.secure_url) {
+    throw new Error("Cloudinary video upload did not return a URL.");
+  }
+
+  const publicId = uploadResult.public_id || null;
+  const secureUrl = uploadResult.secure_url;
+  const thumbUrl = buildCloudinaryVideoThumbnail(publicId, secureUrl) || secureUrl || DEFAULT_VIDEO_THUMB_URL;
+
+  return {
+    url: secureUrl,
+    thumbnail: thumbUrl || DEFAULT_VIDEO_THUMB_URL,
+    type: "video",
+    cloudinaryId: publicId,
+    cloudinaryResourceType: "video",
+  };
+}
+
+async function processImage(file) {
+  if (CLOUDINARY_ENABLED) {
+    try {
+      return await processImageCloudinary(file);
+    } catch (err) {
+      console.error("Cloudinary image upload failed:", err?.message || err);
+    }
+  }
+  return processImageLocal(file);
+}
+
+async function processVideo(file) {
+  if (CLOUDINARY_ENABLED) {
+    try {
+      return await processVideoCloudinary(file);
+    } catch (err) {
+      console.error("Cloudinary video upload failed:", err?.message || err);
+    }
+  }
+  return processVideoLocal(file);
+}
+
 async function refreshMissingVideoThumbs() {
+  if (CLOUDINARY_ENABLED) return;
   try {
     const projects = readProjects();
     let changed = false;
@@ -350,6 +573,7 @@ async function refreshMissingVideoThumbs() {
     for (const project of projects) {
       if (!Array.isArray(project.media)) continue;
       for (const media of project.media) {
+        if (media?.cloudinaryId) continue;
         if (!media || media.type !== "video") continue;
         let needsRefresh = false;
         let thumbPath;
@@ -468,12 +692,13 @@ app.post("/api/projects", requireAdmin, upload.array("media", 20), async (req, r
 
     for (const f of req.files || []) {
       const ext = path.extname(f.originalname).toLowerCase();
+      let processed;
       if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
-        media.push(await processImage(f));
+        processed = await processImage(f);
       } else {
-        const processed = await processVideo(f);
-        media.push(processed);
+        processed = await processVideo(f);
       }
+      if (processed) media.push(processed);
     }
 
     const shouldSpotlight = parseBoolean(req.body.spotlight, false);
@@ -532,20 +757,24 @@ app.put("/api/projects/:index", requireAdmin, upload.array("newMedia", 20), asyn
     proj.media = (proj.media || []).filter(m => !removedSet.has(m.url));
 
     // delete files from disk
-    removed.forEach((m) => {
-      if (m.url)       safeUnlink(m.url);
-      if (m.thumbnail) safeUnlink(m.thumbnail);
-    });
+    await Promise.all(
+      removed.map(async (m) => {
+        await deleteCloudinaryAsset(m);
+        if (m.url) safeUnlink(m.url);
+        if (m.thumbnail) safeUnlink(m.thumbnail);
+      })
+    );
 
     // 3) add new uploads
     for (const f of req.files || []) {
       const ext = path.extname(f.originalname).toLowerCase();
+      let processed;
       if ([".jpg", ".jpeg", ".png", ".webp"].includes(ext)) {
-        proj.media.push(await processImage(f));
+        processed = await processImage(f);
       } else {
-        const processed = await processVideo(f);
-        proj.media.push(processed);
+        processed = await processVideo(f);
       }
+      if (processed) proj.media.push(processed);
     }
 
     saveProjects(projects);
@@ -596,29 +825,32 @@ app.post("/api/projects/spotlight", requireAdmin, (req, res) => {
   }
 });
 
-// DELETE project (also deletes all media files from disk)
-app.delete("/api/projects/:index", requireAdmin, (req, res) => {
+// DELETE project (also deletes all media files from disk or cloud)
+app.delete("/api/projects/:index", requireAdmin, async (req, res) => {
   try {
     const i = parseInt(req.params.index, 10);
     const projects = readProjects();
-    if (isNaN(i) || i < 0 || i >= projects.length) return res.status(404).json({ ok: false, error: "Project not found" });
+    if (isNaN(i) || i < 0 || i >= projects.length) {
+      return res.status(404).json({ ok: false, error: "Project not found" });
+    }
 
     const removed = projects.splice(i, 1)[0];
     saveProjects(projects);
 
-    // delete media files
-    for (const m of removed.media || []) {
-      if (m.url) safeUnlink(m.url);
-      if (m.thumbnail) safeUnlink(m.thumbnail);
-    }
+    await Promise.all(
+      (removed.media || []).map(async (m) => {
+        await deleteCloudinaryAsset(m);
+        if (m?.url) safeUnlink(m.url);
+        if (m?.thumbnail) safeUnlink(m.thumbnail);
+      })
+    );
 
     res.json({ ok: true, removed });
   } catch (err) {
-    console.error("❌ Delete error:", err);
+    console.error("Delete error:", err);
     res.status(500).json({ ok: false, error: err.message });
   }
 });
-
 // ---------- Auth + Static ----------
 app.get("/admin-login.html", (_req, res) => {
   res.sendFile(path.resolve("public", "admin-login.html"));
@@ -757,3 +989,4 @@ app.use((req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+

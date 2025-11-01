@@ -1452,23 +1452,59 @@ function renderEditMediaList(media) {
   (media || []).forEach((m) => {
     const isVideo = m.type === "video";
     const thumb = getMediaThumb(m);
+    const dataUrl = escapeHtml(m.url || "");
+    const dataThumb = escapeHtml(m.thumbnail || "");
+    const dataCloudinaryId = escapeHtml(m.cloudinaryId || "");
+    const dataType = escapeHtml(m.type || "");
+    const dataResourceType = escapeHtml(m.cloudinaryResourceType || (m.type === "video" ? "video" : "image"));
+    const mediaMarkup = isVideo
+      ? `<video src="${escapeHtml(m.url || "")}" poster="${escapeHtml(thumb)}" muted playsinline></video>`
+      : `<img src="${escapeHtml(thumb)}" alt="media" loading="lazy">`;
 
     list.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="media-item" data-url="${m.url}">
-        ${isVideo
-          ? `<video src="${m.url}" poster="${thumb}" muted playsinline></video>`
-          : `<img src="${thumb}" alt="media" loading="lazy">`}
-        <button class="media-remove" title="Remove" onclick="removeExistingMedia('${m.url}', '${m.thumbnail || ""}')">&times;</button>
+      <div class="media-item"
+           data-url="${dataUrl}"
+           data-thumbnail="${dataThumb}"
+           data-cloudinary-id="${dataCloudinaryId}"
+           data-type="${dataType}"
+           data-resource-type="${dataResourceType}">
+        ${mediaMarkup}
+        <button class="media-remove" title="Remove" onclick="handleRemoveExistingMedia(this)">&times;</button>
       </div>
     `
     );
   });
   attachFallbacks(list);
 }
-function removeExistingMedia(url, thumbnail = "") {
-  removedMedia.push({ url, thumbnail });
+
+function handleRemoveExistingMedia(button) {
+  const item = button?.closest(".media-item");
+  if (!item) return;
+  removeExistingMedia(
+    item.dataset.url || "",
+    item.dataset.thumbnail || "",
+    item.dataset.cloudinaryId || "",
+    item.dataset.type || "",
+    item.dataset.resourceType || "",
+    item
+  );
+}
+
+function removeExistingMedia(
+  url,
+  thumbnail = "",
+  cloudinaryId = "",
+  mediaType = "",
+  cloudinaryResourceType = "",
+  element
+) {
+  removedMedia.push({ url, thumbnail, cloudinaryId, type: mediaType, cloudinaryResourceType });
+  if (element) {
+    element.remove();
+    return;
+  }
   const item = document.querySelector(`.media-item[data-url="${CSS.escape(url)}"]`);
   if (item) item.remove();
 }

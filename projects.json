@@ -406,5 +406,19 @@
       }
     ],
     "spotlight": false
+  },
+  {
+    "title": "asd",
+    "description": "asda",
+    "category": "signage",
+    "client": "asdasd",
+    "media": [
+      {
+        "url": "/uploads/1762025293058-tst 3-compressed.jpg",
+        "thumbnail": "/uploads/1762025293058-tst 3-thumb.jpg",
+        "type": "image"
+      }
+    ],
+    "spotlight": false
   }
 ]
