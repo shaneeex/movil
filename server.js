@@ -1001,7 +1001,11 @@ app.use((req, res, next) => {
 });
 
 // ---------- Start ----------
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}
+
+export default app;
 
