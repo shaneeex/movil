@@ -6,6 +6,7 @@ import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 import path from "path";
+import os from "os";
 import { v2 as cloudinary } from "cloudinary";
 
 if (ffmpegInstaller?.path) {
@@ -44,6 +45,7 @@ if (CLOUDINARY_HAS_CLOUD) {
 }
 
 const UPLOAD_DIR = path.resolve("public/uploads");
+const TEMP_UPLOAD_DIR = path.join(process.env.TMPDIR || os.tmpdir(), "movil-uploads");
 const DATA_FILE  = path.resolve("projects.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "movilstudio!";
 const ADMIN_COOKIE = "admin_token";
@@ -55,8 +57,14 @@ const VIDEO_SCREENSHOT_TIMEMARK = 0.5;
 
 let defaultVideoThumbPromise = null;
 
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+if (!CLOUDINARY_ENABLED) {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} else {
+  if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
+    fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+  }
 }
 
 // ---------- Middleware ----------
@@ -77,10 +85,13 @@ app.use((req, _res, next) => {
 // ---------- Multer ----------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    cb(null, UPLOAD_DIR);
+    const targetDir = CLOUDINARY_ENABLED ? TEMP_UPLOAD_DIR : UPLOAD_DIR;
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    cb(null, targetDir);
   },
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + (file.originalname || file.fieldname)),
 });
 const upload = multer({ storage });
 
@@ -127,6 +138,10 @@ function buildCloudinaryPublicId(fileName = "", resourceType = "image") {
 
 async function cleanupLocalFile(filePath) {
   if (!filePath) return;
+  if (!path.isAbsolute(filePath)) return;
+  const normalized = path.resolve(filePath);
+  const allowedRoots = [UPLOAD_DIR, TEMP_UPLOAD_DIR];
+  if (!allowedRoots.some((dir) => normalized.startsWith(dir))) return;
   try {
     await fsp.unlink(filePath);
   } catch (err) {
