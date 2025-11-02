@@ -42,6 +42,7 @@ const CLOUDINARY_UNSIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_UP
 const CLOUDINARY_ENABLED = CLOUDINARY_SIGNED_UPLOAD || CLOUDINARY_UNSIGNED_UPLOAD;
 const disableThumbFlag = (process.env.DISABLE_VIDEO_THUMBNAILS || "").trim().toLowerCase();
 const DISABLE_VIDEO_THUMBNAILS = !["0", "false", "no", "off"].includes(disableThumbFlag);
+const IS_SERVERLESS_ENV = process.env.VERCEL === "1";
 
 if (CLOUDINARY_HAS_CLOUD) {
   cloudinary.config({
@@ -997,12 +998,9 @@ app.get("/p/:shareId", (req, res) => {
   }
 });
 
-if (process.env.VERCEL !== "1") {
-const IS_SERVERLESS_ENV = process.env.VERCEL === "1";
 if (!IS_SERVERLESS_ENV) {
   app.use("/uploads", express.static(UPLOAD_DIR));
   app.use(express.static(PUBLIC_DIR));
-}
 }
 
 ensureDefaultVideoThumb().catch((err) => {
