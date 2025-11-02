@@ -77,24 +77,6 @@ if (!CLOUDINARY_ENABLED) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use((req, _res, next) => {
-  if (process.env.VERCEL === "1") {
-    console.log(
-      JSON.stringify({
-        vercel: true,
-        method: req.method,
-        originalUrl: req.originalUrl,
-        url: req.url,
-        headers: {
-          "x-vercel-forwarded-path": req.headers["x-vercel-forwarded-path"],
-          "x-forwarded-path": req.headers["x-forwarded-path"],
-          "x-original-uri": req.headers["x-original-uri"],
-        },
-      })
-    );
-  }
-  next();
-});
-app.use((req, _res, next) => {
   req.cookies = {};
   const raw = req.headers.cookie;
   if (raw) {
