@@ -1052,6 +1052,13 @@ async function fetchAllProjects() {
   return res.json();
 }
 
+async function ensureAdminSession() {
+  const res = await fetch("/api/admin/session");
+  if (res.ok) return true;
+  window.location.href = "/admin-login.html?expired=1";
+  throw new Error("Admin session required");
+}
+
 /************ ADMIN: LIST ************/
 async function loadAdminProjects(page = 1) {
   const container = $id("adminProjects");
@@ -1212,27 +1219,6 @@ document.addEventListener("click", () => {
   document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
 });
 
-async function postSpotlight(url, payload) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  let data = null;
-  try {
-    data = await res.json();
-  } catch (_) {
-    data = null;
-  }
-  if (!res.ok || !data?.ok) {
-    const error = new Error(data?.error || `Request failed (${res.status})`);
-    error.status = res.status;
-    error.response = data;
-    throw error;
-  }
-  return data;
-}
-
 async function toggleSpotlight(index, enable = true) {
   const numericIndex = Number(index);
   if (!Number.isInteger(numericIndex) || numericIndex < 0) {
@@ -1246,30 +1232,15 @@ async function toggleSpotlight(index, enable = true) {
     (typeof enable === "string" && enable.toLowerCase() === "true");
 
   try {
-    let response;
-    try {
-      response = await postSpotlight(`/api/projects/${numericIndex}/spotlight`, {
-        spotlight: shouldEnable,
-      });
-    } catch (error) {
-      if (error.status === 404) {
-        try {
-          response = await postSpotlight(`/api/projects/spotlight`, {
-            index: numericIndex,
-            spotlight: shouldEnable,
-          });
-        } catch (fallbackError) {
-          if (fallbackError.status === 404 || fallbackError.status === 405 || fallbackError.status === 500) {
-            response = await updateSpotlightViaEdit(numericIndex, shouldEnable);
-          } else {
-            throw fallbackError;
-          }
-        }
-      } else if (error.status === 405 || error.status === 500) {
-        response = await updateSpotlightViaEdit(numericIndex, shouldEnable);
-      } else {
-        throw error;
-      }
+    const fd = new FormData();
+    fd.append("spotlight", shouldEnable ? "true" : "false");
+    const res = await fetch(`/api/projects/${numericIndex}`, {
+      method: "PUT",
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Request failed (${res.status})`);
     }
 
     document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
@@ -1289,33 +1260,12 @@ async function toggleSpotlight(index, enable = true) {
     }
     broadcastProjectsUpdate({ action: "spotlight", index: numericIndex, enable: shouldEnable });
 
-    return response;
+    return data;
   } catch (err) {
     console.error("Spotlight toggle error:", err);
     showAdminToast(err.message || "Unable to update spotlight.", "error");
     return null;
   }
-}
-
-async function updateSpotlightViaEdit(index, enable) {
-  const fd = new FormData();
-  fd.append("spotlight", enable ? "true" : "false");
-  const res = await fetch(`/api/projects/${index}`, {
-    method: "PUT",
-    body: fd,
-  });
-  let data = null;
-  try {
-    data = await res.json();
-  } catch (_) {
-    data = null;
-  }
-  if (!res.ok || !data?.ok) {
-    const error = new Error(data?.error || `Request failed (${res.status})`);
-    error.status = res.status;
-    throw error;
-  }
-  return data;
 }
 
 /************ ADMIN: UPLOAD ************/
@@ -1620,7 +1570,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (document.getElementById("adminProjects")) {
     // On admin.html
-    await loadAdminProjects(1).catch(console.error);
+    try {
+      await ensureAdminSession();
+      await loadAdminProjects(1);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   // Modal close for admin

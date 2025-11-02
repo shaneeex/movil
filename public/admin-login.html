@@ -97,7 +97,7 @@
   <div class="card">
     <h1>Admin Access</h1>
     <p id="loginMessage">Enter the admin password to manage projects.</p>
-    <form method="POST" action="/admin/login">
+    <form method="POST" action="/api/admin/login">
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required autocomplete="current-password" />
       <button type="submit">Enter Dashboard</button>
@@ -110,6 +110,8 @@
     if (params.get("error") === "1") {
       message.textContent = "Invalid password. Please try again.";
       message.style.color = "#ff6b6b";
+    } else if (params.get("expired") === "1") {
+      message.textContent = "Session expired. Please log in again.";
     } else if (params.get("loggedOut") === "1") {
       message.textContent = "You have been signed out.";
     }
