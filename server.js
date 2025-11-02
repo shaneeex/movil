@@ -988,8 +988,10 @@ app.get("/p/:shareId", (req, res) => {
   }
 });
 
-app.use("/uploads", express.static("public/uploads"));
-app.use(express.static("public"));
+if (process.env.VERCEL !== "1") {
+  app.use("/uploads", express.static("public/uploads"));
+  app.use(express.static("public"));
+}
 
 ensureDefaultVideoThumb().catch((err) => {
   console.warn("Default video thumbnail not generated at startup:", err?.message || err);
@@ -1007,13 +1009,11 @@ app.use((req, res, next) => {
 });
 
 // ---------- Start ----------
-const handler = (req, res) => app(req, res);
-
 if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }
 
-export default handler;
+export default app;
 
