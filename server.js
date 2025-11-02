@@ -1021,7 +1021,7 @@ app.use((req, res, next) => {
 });
 
 // ---------- Start ----------
-if (process.env.NODE_ENV !== "production" && process.env.VERCEL !== "1") {
+if (!IS_SERVERLESS_ENV) {
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
