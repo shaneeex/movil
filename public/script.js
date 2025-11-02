@@ -1,6 +1,6 @@
 ﻿// @ts-nocheck
 /************ PUBLIC (index.html) ************/
-const VIDEO_THUMB_FALLBACK = "/uploads/default-video-thumb.jpg";
+const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;

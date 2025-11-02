@@ -40,9 +40,38 @@ const CLOUDINARY_HAS_CLOUD = Boolean(CLOUDINARY_CLOUD_NAME);
 const CLOUDINARY_SIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_API_SECRET);
 const CLOUDINARY_UNSIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_UPLOAD_PRESET);
 const CLOUDINARY_ENABLED = CLOUDINARY_SIGNED_UPLOAD || CLOUDINARY_UNSIGNED_UPLOAD;
-const disableThumbFlag = (process.env.DISABLE_VIDEO_THUMBNAILS || "").trim().toLowerCase();
-const DISABLE_VIDEO_THUMBNAILS = !["0", "false", "no", "off"].includes(disableThumbFlag);
 const IS_SERVERLESS_ENV = process.env.VERCEL === "1";
+const rawProjectStoragePref =
+  process.env.PROJECTS_STORAGE || (IS_SERVERLESS_ENV ? "cloudinary" : "file");
+const PROJECTS_STORAGE_MODE = rawProjectStoragePref.trim().toLowerCase() === "cloudinary"
+  ? "cloudinary"
+  : "file";
+const DEFAULT_PROJECTS_PUBLIC_ID = (() => {
+  const baseFolder =
+    process.env.CLOUDINARY_PROJECTS_FOLDER ||
+    `${(CLOUDINARY_UPLOAD_FOLDER || "movil/projects").replace(/\/+$/, "")}-data`;
+  const cleaned = baseFolder.replace(/^\/+|\/+$/g, "");
+  return `${cleaned}/projects.json`;
+})();
+const CLOUDINARY_PROJECTS_PUBLIC_ID = (
+  process.env.CLOUDINARY_PROJECTS_ID || DEFAULT_PROJECTS_PUBLIC_ID
+).replace(/^\/+/, "");
+const PROJECTS_USE_CLOUDINARY = PROJECTS_STORAGE_MODE === "cloudinary";
+
+if (PROJECTS_USE_CLOUDINARY && !CLOUDINARY_SIGNED_UPLOAD) {
+  throw new Error(
+    "PROJECTS_STORAGE=cloudinary requires CLOUDINARY_API_SECRET for authenticated Cloudinary access."
+  );
+}
+if (IS_SERVERLESS_ENV && !PROJECTS_USE_CLOUDINARY) {
+  throw new Error(
+    "Serverless deployments (e.g. Vercel) require PROJECTS_STORAGE=cloudinary to persist project data."
+  );
+}
+
+const disableThumbFlag = (process.env.DISABLE_VIDEO_THUMBNAILS || "").trim().toLowerCase();
+const DISABLE_VIDEO_THUMBNAILS =
+  IS_SERVERLESS_ENV || !["0", "false", "no", "off"].includes(disableThumbFlag);
 
 if (CLOUDINARY_HAS_CLOUD) {
   cloudinary.config({
@@ -61,22 +90,21 @@ const TEMP_UPLOAD_DIR = path.resolve(
 const DATA_FILE = path.resolve(process.env.DATA_FILE_PATH || "projects.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "movilstudio!";
 const ADMIN_COOKIE = "admin_token";
-const DEFAULT_VIDEO_THUMB = path.join(UPLOAD_DIR, "default-video-thumb.jpg");
-const DEFAULT_VIDEO_THUMB_URL = "/uploads/default-video-thumb.jpg";
+const DEFAULT_VIDEO_THUMB = path.resolve(PUBLIC_DIR, "static", "default-video-thumb.jpg");
+const DEFAULT_VIDEO_THUMB_URL = "/static/default-video-thumb.jpg";
 const VIDEO_SCREENSHOT_TIMEOUT_MS = 15000;
 const VIDEO_SCREENSHOT_SIZE = "640x?"; // keeps aspect ratio while shrinking width
 const VIDEO_SCREENSHOT_TIMEMARK = 0.5;
 
 let defaultVideoThumbPromise = null;
 
-if (!CLOUDINARY_ENABLED) {
+if (!CLOUDINARY_ENABLED && !IS_SERVERLESS_ENV) {
   if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   }
-} else {
-  if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
-    fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
-  }
+}
+if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
+  fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
 }
 
 // ---------- Middleware ----------
@@ -108,9 +136,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ---------- Helpers ----------
-function readProjects() {
-  if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, "[]");
-  const raw = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+const PROJECTS_CACHE_TTL_MS = Number(process.env.PROJECTS_CACHE_TTL_MS || 15000);
+let projectsCache = null;
+let projectsCacheTime = 0;
+
+function normalizeProjectsArray(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map((proj) => ({
     ...proj,
@@ -120,8 +150,80 @@ function readProjects() {
     spotlight: Boolean(proj?.spotlight),
   }));
 }
-function saveProjects(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+
+async function loadProjectsFromFile() {
+  if (!fs.existsSync(DATA_FILE)) return [];
+  try {
+    const json = await fsp.readFile(DATA_FILE, "utf8");
+    return JSON.parse(json);
+  } catch (err) {
+    console.error("Unable to read projects.json:", err?.message || err);
+    return [];
+  }
+}
+
+async function loadProjectsFromCloudinary() {
+  try {
+    const resource = await cloudinary.api.resource(CLOUDINARY_PROJECTS_PUBLIC_ID, {
+      resource_type: "raw",
+    });
+    const url = resource?.secure_url;
+    if (!url) return [];
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Cloudinary response ${response.status}`);
+    }
+    const text = await response.text();
+    if (!text.trim()) return [];
+    return JSON.parse(text);
+  } catch (err) {
+    const code = err?.http_code || err?.status || err?.error?.http_code;
+    const message = err?.message || err?.error?.message || "";
+    if (code === 404 || /not found/i.test(message)) {
+      return [];
+    }
+    console.error("Failed to load projects from Cloudinary:", message || err);
+    throw err;
+  }
+}
+
+async function readProjects({ forceRefresh = false } = {}) {
+  const now = Date.now();
+  if (!forceRefresh && projectsCache && now - projectsCacheTime < PROJECTS_CACHE_TTL_MS) {
+    return projectsCache;
+  }
+
+  const raw = PROJECTS_USE_CLOUDINARY
+    ? await loadProjectsFromCloudinary()
+    : await loadProjectsFromFile();
+  const normalized = normalizeProjectsArray(raw);
+  projectsCache = normalized;
+  projectsCacheTime = now;
+  return normalized;
+}
+
+async function saveProjects(data) {
+  const serialized = JSON.stringify(data, null, 2);
+
+  if (PROJECTS_USE_CLOUDINARY) {
+    await new Promise((resolve, reject) => {
+      const uploadOptions = {
+        resource_type: "raw",
+        public_id: CLOUDINARY_PROJECTS_PUBLIC_ID,
+        overwrite: true,
+      };
+      const stream = cloudinary.uploader.upload_stream(uploadOptions, (error) => {
+        if (error) return reject(error);
+        resolve();
+      });
+      stream.end(Buffer.from(serialized, "utf8"));
+    });
+  } else {
+    await fsp.writeFile(DATA_FILE, serialized, "utf8");
+  }
+
+  projectsCache = normalizeProjectsArray(data);
+  projectsCacheTime = Date.now();
 }
 function toFsPathFromUrl(urlPath) {
   // urlPath like "/uploads/abc.jpg" → absolute fs path
@@ -598,7 +700,7 @@ async function processVideo(file) {
 async function refreshMissingVideoThumbs() {
   if (CLOUDINARY_ENABLED) return;
   try {
-    const projects = readProjects();
+    const projects = await readProjects();
     let changed = false;
 
     for (const project of projects) {
@@ -639,7 +741,7 @@ async function refreshMissingVideoThumbs() {
     }
 
     if (changed) {
-      saveProjects(projects);
+      await saveProjects(projects);
       console.log("Updated missing video thumbnails.");
     }
   } catch (err) {
@@ -711,14 +813,19 @@ function makeAbsoluteUrl(req, urlPath = "") {
 // ---------- API Routes ----------
 
 // GET all
-app.get("/api/projects", (req, res) => {
-  res.json(readProjects());
+app.get("/api/projects", async (_req, res, next) => {
+  try {
+    const projects = await readProjects();
+    res.json(projects);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST create
 app.post("/api/projects", requireAdmin, upload.array("media", 20), async (req, res) => {
   try {
-    const projects = readProjects();
+    const projects = await readProjects();
     const media = [];
 
     for (const f of req.files || []) {
@@ -746,7 +853,7 @@ app.post("/api/projects", requireAdmin, upload.array("media", 20), async (req, r
     if (shouldSpotlight) {
       applySpotlightStatus(projects, projects.length - 1, true);
     }
-    saveProjects(projects);
+    await saveProjects(projects);
     res.json({ ok: true, project: newProject });
   } catch (err) {
     console.error("❌ Upload error:", err);
@@ -758,7 +865,7 @@ app.post("/api/projects", requireAdmin, upload.array("media", 20), async (req, r
 app.put("/api/projects/:index", requireAdmin, upload.array("newMedia", 20), async (req, res) => {
   try {
     const i = parseInt(req.params.index, 10);
-    const projects = readProjects();
+    const projects = await readProjects();
     if (isNaN(i) || i < 0 || i >= projects.length) return res.status(404).json({ ok: false, error: "Project not found" });
 
     const proj = projects[i];
@@ -808,7 +915,7 @@ app.put("/api/projects/:index", requireAdmin, upload.array("newMedia", 20), asyn
       if (processed) proj.media.push(processed);
     }
 
-    saveProjects(projects);
+    await saveProjects(projects);
     res.json({ ok: true, project: proj });
   } catch (err) {
     console.error("❌ Edit error:", err);
@@ -816,15 +923,15 @@ app.put("/api/projects/:index", requireAdmin, upload.array("newMedia", 20), asyn
   }
 });
 
-app.post("/api/projects/:index/spotlight", requireAdmin, (req, res) => {
+app.post("/api/projects/:index/spotlight", requireAdmin, async (req, res) => {
   try {
     const i = parseInt(req.params.index, 10);
-    const projects = readProjects();
+    const projects = await readProjects();
     const shouldEnable = parseBoolean(req.body?.spotlight, true);
     const updated = applySpotlightStatus(projects, i, shouldEnable);
     if (!updated) return res.status(404).json({ ok: false, error: "Project not found" });
 
-    saveProjects(projects);
+    await saveProjects(projects);
     res.json({
       ok: true,
       project: updated,
@@ -836,15 +943,15 @@ app.post("/api/projects/:index/spotlight", requireAdmin, (req, res) => {
   }
 });
 
-app.post("/api/projects/spotlight", requireAdmin, (req, res) => {
+app.post("/api/projects/spotlight", requireAdmin, async (req, res) => {
   try {
     const i = parseInt(req.body?.index, 10);
-    const projects = readProjects();
+    const projects = await readProjects();
     const shouldEnable = parseBoolean(req.body?.spotlight, true);
     const updated = applySpotlightStatus(projects, i, shouldEnable);
     if (!updated) return res.status(404).json({ ok: false, error: "Project not found" });
 
-    saveProjects(projects);
+    await saveProjects(projects);
     res.json({
       ok: true,
       project: updated,
@@ -860,13 +967,13 @@ app.post("/api/projects/spotlight", requireAdmin, (req, res) => {
 app.delete("/api/projects/:index", requireAdmin, async (req, res) => {
   try {
     const i = parseInt(req.params.index, 10);
-    const projects = readProjects();
+    const projects = await readProjects();
     if (isNaN(i) || i < 0 || i >= projects.length) {
       return res.status(404).json({ ok: false, error: "Project not found" });
     }
 
     const removed = projects.splice(i, 1)[0];
-    saveProjects(projects);
+    await saveProjects(projects);
 
     await Promise.all(
       (removed.media || []).map(async (m) => {
@@ -901,28 +1008,27 @@ app.post("/admin/login", (req, res) => {
   return res.redirect("/admin-login.html?error=1");
 });
 
-app.post("/admin/logout", (req, res) => {
+function handleAdminLogout(req, res) {
   setAdminCookie(res, "", { maxAge: 0 });
-  res.redirect("/admin-login.html?loggedOut=1");
-});
+  const redirectTarget = "/admin-login.html?loggedOut=1";
+  if (req.accepts(["application/json", "json"])) {
+    return res.status(200).json({ ok: true, redirect: redirectTarget });
+  }
+  const status = req.method === "GET" ? 302 : 303;
+  return res.redirect(status, redirectTarget);
+}
 
-app.get("/admin/logout", (req, res) => {
-  setAdminCookie(res, "", { maxAge: 0 });
-  res.redirect("/admin-login.html?loggedOut=1");
-});
+app.all("/admin/logout", handleAdminLogout);
 
-app.get("/admin/logout.html", (req, res) => {
-  setAdminCookie(res, "", { maxAge: 0 });
-  res.redirect("/admin-login.html?loggedOut=1");
-});
+app.get("/admin/logout.html", handleAdminLogout);
 
 app.get("/admin.html", requireAdmin, (_req, res) => {
   res.sendFile(path.resolve("public", "admin.html"));
 });
 
-app.get("/p/:shareId", (req, res) => {
+app.get("/p/:shareId", async (req, res) => {
   try {
-    const projects = readProjects();
+    const projects = await readProjects();
     const { project, index } = findProjectByShareId(projects, req.params.shareId);
     if (!project) {
       return res.redirect("/");

@@ -4,7 +4,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "backup-projects": "node scripts/backup-projects.js",
+    "push-projects": "node scripts/push-projects-to-cloudinary.js"
   },
   "engines": {
     "node": "18.x"
