@@ -40,6 +40,7 @@ const CLOUDINARY_HAS_CLOUD = Boolean(CLOUDINARY_CLOUD_NAME);
 const CLOUDINARY_SIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_API_SECRET);
 const CLOUDINARY_UNSIGNED_UPLOAD = CLOUDINARY_HAS_CLOUD && Boolean(CLOUDINARY_UPLOAD_PRESET);
 const CLOUDINARY_ENABLED = CLOUDINARY_SIGNED_UPLOAD || CLOUDINARY_UNSIGNED_UPLOAD;
+const DISABLE_VIDEO_THUMBNAILS = process.env.DISABLE_VIDEO_THUMBNAILS === "1";
 
 if (CLOUDINARY_HAS_CLOUD) {
   cloudinary.config({
@@ -324,6 +325,7 @@ function applySpotlightStatus(projects, index, enable) {
 }
 
 async function ensureDefaultVideoThumb() {
+  if (DISABLE_VIDEO_THUMBNAILS) return null;
   if (fs.existsSync(DEFAULT_VIDEO_THUMB)) return DEFAULT_VIDEO_THUMB;
   if (!defaultVideoThumbPromise) {
     defaultVideoThumbPromise = new Promise((resolve) => {
@@ -357,6 +359,9 @@ async function probeVideoDurationSeconds(videoPath) {
 }
 
 async function createVideoThumbnail(videoPath, filename) {
+  if (DISABLE_VIDEO_THUMBNAILS) {
+    return { path: DEFAULT_VIDEO_THUMB, url: DEFAULT_VIDEO_THUMB_URL };
+  }
   await ensureDefaultVideoThumb();
 
   const baseName = path.parse(filename).name;
