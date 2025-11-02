@@ -5,26 +5,18 @@
       "runtime": "nodejs18.x"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api",
-      "destination": "/api/index"
+      "src": "/api(?:/.*)?",
+      "dest": "/api/index.js"
     },
     {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
+      "src": "/admin(?:/.*)?",
+      "dest": "/api/index.js"
     },
     {
-      "source": "/admin",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/p/(.*)",
-      "destination": "/api/index"
+      "src": "/p/(.*)",
+      "dest": "/api/index.js"
     }
   ]
 }
