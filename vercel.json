@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
+    { "handle": "filesystem" },
     { "src": "/p/(.*)", "dest": "/api/p/$1" }
   ]
 }
