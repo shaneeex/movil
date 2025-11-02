@@ -9,7 +9,7 @@
     "push-projects": "node scripts/push-projects-to-cloudinary.js"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "dependencies": {
     "busboy": "^1.6.0",
