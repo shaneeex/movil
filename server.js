@@ -28,7 +28,7 @@ if (ffprobeInstaller?.path) {
 
 const app = express();
 app.set("trust proxy", true);
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const fsp = fs.promises;
 
 const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "";
@@ -50,9 +50,12 @@ if (CLOUDINARY_HAS_CLOUD) {
   });
 }
 
-const UPLOAD_DIR = path.resolve("public/uploads");
-const TEMP_UPLOAD_DIR = path.join(process.env.TMPDIR || os.tmpdir(), "movil-uploads");
-const DATA_FILE  = path.resolve("projects.json");
+const PUBLIC_DIR = path.resolve("public");
+const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || path.join("public", "uploads"));
+const TEMP_UPLOAD_DIR = path.resolve(
+  process.env.TEMP_UPLOAD_DIR || path.join(os.tmpdir(), "movil-uploads")
+);
+const DATA_FILE = path.resolve(process.env.DATA_FILE_PATH || "projects.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "movilstudio!";
 const ADMIN_COOKIE = "admin_token";
 const DEFAULT_VIDEO_THUMB = path.join(UPLOAD_DIR, "default-video-thumb.jpg");
@@ -989,8 +992,11 @@ app.get("/p/:shareId", (req, res) => {
 });
 
 if (process.env.VERCEL !== "1") {
-  app.use("/uploads", express.static("public/uploads"));
-  app.use(express.static("public"));
+const IS_SERVERLESS_ENV = process.env.VERCEL === "1";
+if (!IS_SERVERLESS_ENV) {
+  app.use("/uploads", express.static(UPLOAD_DIR));
+  app.use(express.static(PUBLIC_DIR));
+}
 }
 
 ensureDefaultVideoThumb().catch((err) => {
@@ -1005,7 +1011,7 @@ app.use((req, res, next) => {
   if (req.originalUrl.startsWith("/api/")) {
     return res.status(404).json({ ok: false, error: "API route not found" });
   }
-  res.sendFile(path.resolve("public", "index.html"));
+  res.sendFile(path.resolve(PUBLIC_DIR, "index.html"));
 });
 
 // ---------- Start ----------
