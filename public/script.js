@@ -147,6 +147,113 @@ function broadcastProjectsUpdate(detail = {}) {
   }
 }
 
+let cloudinaryConfigPromise = null;
+
+async function getCloudinaryConfig() {
+  if (!cloudinaryConfigPromise) {
+    cloudinaryConfigPromise = fetch("/api/config/cloudinary")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Cloudinary configuration is unavailable.");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.ok || !data.cloudName || !data.uploadPreset) {
+          throw new Error(data?.error || "Cloudinary configuration is unavailable.");
+        }
+        return {
+          cloudName: data.cloudName,
+          uploadPreset: data.uploadPreset,
+          folder: data.folder || "",
+        };
+      })
+      .catch((err) => {
+        cloudinaryConfigPromise = null;
+        throw err;
+      });
+  }
+  return cloudinaryConfigPromise;
+}
+
+function buildVideoThumbnailUrl(cloudName, publicId) {
+  if (!cloudName || !publicId) return VIDEO_THUMB_FALLBACK;
+  const encodedId = encodeURIComponent(publicId).replace(/%2F/g, "/");
+  return `https://res.cloudinary.com/${cloudName}/video/upload/so_0/${encodedId}.jpg`;
+}
+
+function makeMediaPayloadFromUpload({ result, file, cloudName }) {
+  if (!result?.secure_url) {
+    throw new Error("Cloudinary did not return a secure URL.");
+  }
+  const resourceType = result.resource_type === "video" ? "video" : "image";
+  const originalFilename =
+    (file && typeof file.name === "string" ? file.name : null) ||
+    (typeof result.original_filename === "string" ? result.original_filename : null);
+  let thumbnail = result.secure_url;
+  if (resourceType === "video") {
+    thumbnail =
+      result.thumbnail_url ||
+      buildVideoThumbnailUrl(cloudName, result.public_id) ||
+      VIDEO_THUMB_FALLBACK;
+  }
+  return {
+    url: result.secure_url,
+    type: resourceType,
+    thumbnail,
+    cloudinaryId: result.public_id,
+    cloudinaryResourceType: resourceType,
+    originalFilename: originalFilename || undefined,
+  };
+}
+
+function uploadFileToCloudinaryUnsigned(file, config, onProgress) {
+  return new Promise((resolve, reject) => {
+    const endpoint = `https://api.cloudinary.com/v1_1/${config.cloudName}/auto/upload`;
+    const fd = new FormData();
+    fd.append("upload_preset", config.uploadPreset);
+    if (config.folder) fd.append("folder", config.folder);
+    fd.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
+    xhr.responseType = "json";
+
+    if (xhr.upload && typeof onProgress === "function") {
+      xhr.upload.addEventListener("progress", (evt) => {
+        if (evt.lengthComputable) {
+          onProgress((evt.loaded / evt.total) * 100);
+        }
+      });
+    }
+
+    xhr.onload = () => {
+      const response = xhr.response || {};
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          const media = makeMediaPayloadFromUpload({
+            result: response,
+            file,
+            cloudName: config.cloudName,
+          });
+          resolve(media);
+        } catch (err) {
+          reject(err);
+        }
+      } else {
+        const message =
+          response?.error?.message ||
+          response?.message ||
+          `Cloudinary upload failed (${xhr.status})`;
+        reject(new Error(message));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during Cloudinary upload."));
+    xhr.send(fd);
+  });
+}
+
 function normalizeCategory(value) {
   const str = typeof value === "string" ? value.trim() : "";
   if (!str) return DEFAULT_PROJECT_CATEGORY;
@@ -1269,18 +1376,17 @@ async function toggleSpotlight(index, enable = true) {
 }
 
 /************ ADMIN: UPLOAD ************/
-$id("uploadForm")?.addEventListener("submit", (e) => {
+$id("uploadForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
+  const fileInput = form.querySelector('input[name="media"]');
+  const files = Array.from(fileInput?.files || []);
+  if (!files.length) {
+    showAdminToast("Please select at least one image or video file.", "error");
+    return;
+  }
+
   const formData = new FormData(form);
-  const categoryInput = form.querySelector('[name="category"]');
-  const categoryValue =
-    typeof categoryInput?.value === "string" ? categoryInput.value.trim() : "";
-  formData.set("category", categoryValue);
-  const clientInput = form.querySelector('[name="client"]');
-  const clientValue =
-    typeof clientInput?.value === "string" ? clientInput.value.trim() : "";
-  formData.set("client", clientValue);
   const progressWrap = $id("uploadProgress");
   const progressFill = $id("uploadProgressFill");
   const progressLabel = $id("uploadProgressLabel");
@@ -1305,170 +1411,78 @@ $id("uploadForm")?.addEventListener("submit", (e) => {
   const setSubmittingState = (isSubmitting) => {
     if (!submitBtn) return;
     submitBtn.disabled = isSubmitting;
-    submitBtn.textContent = isSubmitting ? "Uploading…" : "Upload Project";
+    submitBtn.textContent = isSubmitting ? "Uploading..." : "Upload Project";
   };
 
-  const xhr = new XMLHttpRequest();
-  xhr.open("POST", "/api/projects");
-  setSubmittingState(true);
-  setProgress(6);
+  try {
+    setSubmittingState(true);
+    setProgress(5);
 
-  xhr.upload.addEventListener("progress", (evt) => {
-    if (evt.lengthComputable) {
-      const pct = (evt.loaded / evt.total) * 100;
-      setProgress(Math.max(12, pct));
-    } else {
-      setProgress(25);
+    const config = await getCloudinaryConfig();
+    const uploadedMedia = [];
+
+    for (let i = 0; i < files.length; i += 1) {
+      const file = files[i];
+      const media = await uploadFileToCloudinaryUnsigned(file, config, (pct) => {
+        const overall = 5 + ((i + pct / 100) / files.length) * 80;
+        setProgress(Math.min(90, overall));
+      });
+      uploadedMedia.push(media);
     }
-  });
 
-  xhr.onreadystatechange = () => {
-    if (xhr.readyState !== XMLHttpRequest.DONE) return;
+    const payload = {
+      title: (formData.get("title") || "").toString().trim(),
+      client: (formData.get("client") || "").toString().trim(),
+      description: (formData.get("description") || "").toString().trim(),
+      category: (formData.get("category") || "").toString().trim(),
+      media: uploadedMedia,
+      spotlight: false,
+    };
+
+    setProgress(92);
+
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (_) {
+      data = null;
+    }
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Project save failed (${res.status})`);
+    }
 
     setProgress(100);
-    setSubmittingState(false);
+    form.reset();
+    if (fileInput) fileInput.value = "";
+    showAdminToast("Project uploaded successfully!", "success");
 
-    let data = {};
     try {
-      data = JSON.parse(xhr.responseText || "{}");
-    } catch (_) {
-      data = { ok: false, error: "Unexpected response from server" };
+      await loadAdminProjects(1);
+      if (window.loadPublicProjects) {
+        await loadPublicProjects(1);
+      }
+    } catch (refreshErr) {
+      console.error(refreshErr);
+      showAdminToast("Project list refresh failed. Please reload.", "error");
     }
 
-    if (xhr.status >= 200 && xhr.status < 300 && data?.ok) {
-      form.reset();
-      showAdminToast("Project uploaded successfully!", "success");
-      loadAdminProjects(1)
-        .then(() => {
-          if (window.loadPublicProjects) {
-            return loadPublicProjects(1);
-          }
-          return null;
-        })
-        .catch((err) => {
-          console.error(err);
-          showAdminToast("Project list refresh failed. Please reload.", "error");
-        })
-        .finally(() => {
-          broadcastProjectsUpdate({ action: "upload" });
-          resetProgress();
-        });
-    } else {
-      const errorMessage =
-        data?.error ||
-        xhr.statusText ||
-        "Upload failed. Please try again.";
-      console.error("Upload error:", errorMessage);
-      showAdminToast(errorMessage, "error");
-      resetProgress();
-    }
-  };
-
-  xhr.onerror = () => {
-    setSubmittingState(false);
-    showAdminToast("Network error during upload. Please try again.", "error");
+    broadcastProjectsUpdate({ action: "upload" });
     resetProgress();
-  };
-
-  xhr.send(formData);
-});
-
-/************ ADMIN: EDIT ************/
-function openEditModal(index) {
-  currentEditIndex = index;
-  removedMedia = [];
-
-  const p = window.adminProjectsCache[index];
-  if (!p) return;
-
-  $id("editTitle").value = p.title || "";
-  const clientField = $id("editClient");
-  if (clientField) clientField.value = p.client || "";
-  $id("editDescription").value = p.description || "";
-  $id("editCategory").value = p.category || DEFAULT_PROJECT_CATEGORY;
-
-  renderEditMediaList(p.media || []);
-
-  const modal = $id("editModal");
-  if (!modal) return;
-  modal.style.display = "flex";
-  requestAnimationFrame(() => modal.classList.add("show"));
-}
-
-function renderEditMediaList(media) {
-  const list = $id("editMediaList");
-  list.innerHTML = "";
-
-  (media || []).forEach((m) => {
-    const isVideo = m.type === "video";
-    const thumb = getMediaThumb(m);
-    const dataUrl = escapeHtml(m.url || "");
-    const dataThumb = escapeHtml(m.thumbnail || "");
-    const dataCloudinaryId = escapeHtml(m.cloudinaryId || "");
-    const dataType = escapeHtml(m.type || "");
-    const dataResourceType = escapeHtml(m.cloudinaryResourceType || (m.type === "video" ? "video" : "image"));
-    const mediaMarkup = isVideo
-      ? `<video src="${escapeHtml(m.url || "")}" poster="${escapeHtml(thumb)}" muted playsinline></video>`
-      : `<img src="${escapeHtml(thumb)}" alt="media" loading="lazy">`;
-
-    list.insertAdjacentHTML(
-      "beforeend",
-      `
-      <div class="media-item"
-           data-url="${dataUrl}"
-           data-thumbnail="${dataThumb}"
-           data-cloudinary-id="${dataCloudinaryId}"
-           data-type="${dataType}"
-           data-resource-type="${dataResourceType}">
-        ${mediaMarkup}
-        <button class="media-remove" title="Remove" onclick="handleRemoveExistingMedia(this)">&times;</button>
-      </div>
-    `
-    );
-  });
-  attachFallbacks(list);
-}
-
-function handleRemoveExistingMedia(button) {
-  const item = button?.closest(".media-item");
-  if (!item) return;
-  removeExistingMedia(
-    item.dataset.url || "",
-    item.dataset.thumbnail || "",
-    item.dataset.cloudinaryId || "",
-    item.dataset.type || "",
-    item.dataset.resourceType || "",
-    item
-  );
-}
-
-function removeExistingMedia(
-  url,
-  thumbnail = "",
-  cloudinaryId = "",
-  mediaType = "",
-  cloudinaryResourceType = "",
-  element
-) {
-  removedMedia.push({ url, thumbnail, cloudinaryId, type: mediaType, cloudinaryResourceType });
-  if (element) {
-    element.remove();
-    return;
+  } catch (err) {
+    console.error("Upload error:", err);
+    showAdminToast(err?.message || "Upload failed. Please try again.", "error");
+    resetProgress();
+  } finally {
+    setSubmittingState(false);
   }
-  const item = document.querySelector(`.media-item[data-url="${CSS.escape(url)}"]`);
-  if (item) item.remove();
-}
-
-function closeEditModal() {
-  const modal = $id("editModal");
-  if (!modal) return;
-  modal.classList.remove("show");
-  setTimeout(() => {
-    modal.style.display = "none";
-  }, 350);
-  removedMedia = [];
-  currentEditIndex = null;
-}
+});
 
 /************ ADMIN: SAVE EDIT ************/
 document.getElementById("editForm")?.addEventListener("submit", async (e) => {
@@ -1480,50 +1494,66 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
   const client = document.getElementById("editClient")?.value.trim() || "";
   const description = document.getElementById("editDescription").value.trim();
   const category = document.getElementById("editCategory").value.trim();
+  const newFilesInput = document.getElementById("editNewMedia");
+  const newFiles = Array.from(newFilesInput?.files || []);
+  const saveBtn = e.submitter || document.querySelector('#editForm button[type="submit"]');
 
-  // OK Create FormData safely
-  const fd = new FormData();
-  fd.append("title", title || "");
-  fd.append("client", client);
-  fd.append("description", description || "");
-  fd.append("category", category || "");
-  fd.append("removed", JSON.stringify(Array.isArray(removedMedia) ? removedMedia : []));
+  if (saveBtn) {
+    saveBtn.dataset.originalText = saveBtn.dataset.originalText || saveBtn.textContent;
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+  }
 
-  // OK Add new uploads if any
-  const newFiles = document.getElementById("editNewMedia")?.files || [];
-  [...newFiles].forEach((f) => fd.append("newMedia", f));
+  const payload = {
+    title: title || "",
+    client,
+    description: description || "",
+    category: category || "",
+    removed: Array.isArray(removedMedia) ? removedMedia : [],
+    newMedia: [],
+  };
 
   try {
-    // OK Send PUT request
-    const res = await fetch(`/api/projects/${currentEditIndex}`, {
+    if (newFiles.length) {
+      const config = await getCloudinaryConfig();
+      for (let i = 0; i < newFiles.length; i += 1) {
+        const media = await uploadFileToCloudinaryUnsigned(newFiles[i], config);
+        payload.newMedia.push(media);
+      }
+    }
+
+    const res = await fetch(`/api/projects/${editedIndex}`, {
       method: "PUT",
-      body: fd,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || "Edit failed");
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) throw new Error(data?.error || "Edit failed");
 
     alert("Changes saved successfully!");
     closeEditModal();
+    if (newFilesInput) newFilesInput.value = "";
 
-    // OK Refresh admin project list
-    await loadAdminProjects(window.adminProjectsCurrentPage || 1);
-
-    // OK Also refresh public gallery if available
-    if (window.loadPublicProjects) {
-      try {
+    try {
+      await loadAdminProjects(window.adminProjectsCurrentPage || 1);
+      if (window.loadPublicProjects) {
         await loadPublicProjects();
-      } catch (refreshErr) {
-        console.error("Public gallery refresh failed:", refreshErr);
       }
+    } catch (refreshErr) {
+      console.error("Public gallery refresh failed:", refreshErr);
     }
     broadcastProjectsUpdate({ action: "edit", index: editedIndex });
   } catch (err) {
     console.error("Edit error:", err);
     alert("Error: " + (err.message || "Something went wrong while saving changes"));
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = saveBtn.dataset.originalText || "Save Changes";
+    }
   }
 });
-
 
 /************ ADMIN: DELETE ************/
 async function deleteProject(index) {

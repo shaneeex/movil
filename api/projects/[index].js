@@ -1,9 +1,15 @@
 
 import { withErrorHandling, sendJSON, methodNotAllowed, notFound } from "../../lib/http.js";
 import { requireAdmin } from "../../lib/auth.js";
-import { parseMultipartForm } from "../../lib/multipart.js";
+import { parseMultipartForm, parseJsonBody } from "../../lib/multipart.js";
 import { uploadMediaStream, deleteMedia } from "../../lib/media.js";
-import { getProjects, saveProjects, applySpotlight } from "../../lib/projects.js";
+import {
+  getProjects,
+  saveProjects,
+  applySpotlight,
+  sanitizeIncomingMediaEntry,
+  sanitizeRemovalEntry,
+} from "../../lib/projects.js";
 import { normalizeCategory, normalizeClient, parseBoolean, safeJSONParse } from "../../lib/utils.js";
 
 export default withErrorHandling(async function handler(req, res) {
@@ -34,11 +40,46 @@ export default withErrorHandling(async function handler(req, res) {
 
   if (!requireAdmin(req, res)) return;
 
+  const contentType = req.headers["content-type"] || "";
+  const project = projects[index];
+
+  if (contentType.includes("application/json")) {
+    const body = await parseJsonBody(req);
+
+    if (typeof body.title === "string") project.title = body.title.trim();
+    if (typeof body.description === "string") project.description = body.description.trim();
+    if (typeof body.category === "string") project.category = normalizeCategory(body.category);
+    if (typeof body.client === "string") project.client = normalizeClient(body.client);
+
+    if (body.spotlight !== undefined) {
+      const enableSpotlight = parseBoolean(body.spotlight, false);
+      applySpotlight(projects, index, enableSpotlight);
+    }
+
+    let removalEntries = [];
+    if (Array.isArray(body?.removed)) {
+      removalEntries = body.removed.map(sanitizeRemovalEntry).filter(Boolean);
+    }
+    if (removalEntries.length) {
+      const removeSet = new Set(removalEntries.map((item) => item.url));
+      project.media = (project.media || []).filter((media) => !removeSet.has(media.url));
+      await Promise.all(removalEntries.map((media) => deleteMedia(media)));
+    }
+
+    if (Array.isArray(body?.newMedia) && body.newMedia.length) {
+      const sanitized = body.newMedia.map(sanitizeIncomingMediaEntry).filter(Boolean);
+      if (sanitized.length) {
+        project.media = [...(project.media || []), ...sanitized];
+      }
+    }
+
+    await saveProjects(projects);
+    return sendJSON(res, 200, { ok: true, project, index });
+  }
+
   const { fields, files } = await parseMultipartForm(req, {
     onFile: ({ file, filename, mimeType }) => uploadMediaStream({ file, filename, mimeType }),
   });
-
-  const project = projects[index];
 
   if (typeof fields.title === "string") project.title = fields.title.trim();
   if (typeof fields.description === "string") project.description = fields.description.trim();
