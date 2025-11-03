@@ -782,7 +782,7 @@ async function shareProject(event, projectIndex) {
   }
 
   const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
-  const project = projects[projectIndex];
+  const project = projects.find((p) => p.__idx === projectIndex);
   if (!project) return;
 
   const origin =
