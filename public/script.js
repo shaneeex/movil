@@ -555,10 +555,11 @@ async function loadPublicProjects(page) {
 
     const rawProjects = await res.json();
     const normalized = [...rawProjects]
-      .map((project) => {
+      .map((project, idx) => {
         const normalized = {
           ...project,
           media: Array.isArray(project.media) ? project.media : [],
+          __idx: idx,
         };
         normalized.category = normalizeCategory(normalized.category);
         normalized.description =
@@ -574,8 +575,7 @@ async function loadPublicProjects(page) {
 
     const prioritized = sortProjectsBySpotlight(normalized);
 
-    prioritized.forEach((p, idx) => {
-      p.__idx = idx;
+    prioritized.forEach((p) => {
       p.spotlight = Boolean(p.spotlight);
     });
 
