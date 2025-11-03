@@ -22,8 +22,11 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   const project = projects[index];
-  if (buildShareId(project, index) !== shareId) {
-    return notFound(res);
+  const canonicalId = buildShareId(project, index);
+  if (canonicalId !== shareId) {
+    res.statusCode = 302;
+    res.setHeader("Location", `/p/${canonicalId}`);
+    return res.end();
   }
 
   const meta = getSharePageMeta(project, index);
