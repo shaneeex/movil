@@ -1,7 +1,7 @@
 
 import { withErrorHandling, notFound } from "../../lib/http.js";
 import { getProjects, getSharePageMeta } from "../../lib/projects.js";
-import { buildShareId } from "../../lib/utils.js";
+import { buildShareId, buildShareKey, slugify } from "../../lib/utils.js";
 
 export default withErrorHandling(async function handler(req, res) {
   if (req.method !== "GET") {
@@ -10,27 +10,69 @@ export default withErrorHandling(async function handler(req, res) {
     return res.end("Method Not Allowed");
   }
 
-  const shareId = req.query?.shareId;
+  const rawShareId = req.query?.shareId;
+  if (!rawShareId) return notFound(res);
+
+  const shareId = String(rawShareId).trim();
   if (!shareId) return notFound(res);
 
   const projects = await getProjects();
-  const [indexPart] = String(shareId).split("-");
-  const index = Number.parseInt(indexPart, 10);
+  const [keyPartRaw, ...slugParts] = shareId.split("-");
+  const keyPart = keyPartRaw || "";
+  const slugPart = slugParts.join("-") || "";
 
-  if (!Number.isInteger(index) || index < 0 || index >= projects.length) {
+  let matchIndex = -1;
+
+  for (let idx = 0; idx < projects.length; idx += 1) {
+    const candidate = projects[idx];
+    if (buildShareId(candidate, idx) === shareId) {
+      matchIndex = idx;
+      break;
+    }
+  }
+
+  if (matchIndex === -1 && /^\d+$/.test(keyPart)) {
+    const idx = Number.parseInt(keyPart, 10);
+    if (idx >= 0 && idx < projects.length) {
+      const candidate = projects[idx];
+      if (!slugPart || slugify(candidate?.title || "") === slugPart) {
+        matchIndex = idx;
+      }
+    }
+  }
+
+  if (matchIndex === -1 && /^i\d+$/i.test(keyPart)) {
+    const idx = Number.parseInt(keyPart.slice(1), 10);
+    if (idx >= 0 && idx < projects.length) {
+      const candidate = projects[idx];
+      if (!slugPart || slugify(candidate?.title || "") === slugPart) {
+        matchIndex = idx;
+      }
+    }
+  }
+
+  if (matchIndex === -1 && keyPart) {
+    matchIndex = projects.findIndex((project, idx) => buildShareKey(project, idx) === keyPart);
+  }
+
+  if (matchIndex === -1 && slugPart) {
+    matchIndex = projects.findIndex((project) => slugify(project?.title || "") === slugPart);
+  }
+
+  if (matchIndex === -1) {
     return notFound(res);
   }
 
-  const project = projects[index];
-  const canonicalId = buildShareId(project, index);
+  const project = projects[matchIndex];
+  const canonicalId = buildShareId(project, matchIndex);
   if (canonicalId !== shareId) {
     res.statusCode = 302;
     res.setHeader("Location", `/p/${canonicalId}`);
     return res.end();
   }
 
-  const meta = getSharePageMeta(project, index);
-  const redirectHash = `/#project-${index}`;
+  const meta = getSharePageMeta(project, matchIndex);
+  const redirectHash = `/#project-${matchIndex}`;
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");

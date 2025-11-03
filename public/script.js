@@ -44,20 +44,64 @@ function getMediaThumb(media) {
   return VIDEO_THUMB_FALLBACK;
 }
 
-function normalizeShareFileName(title) {
-  if (typeof title !== "string" || !title.trim()) return "movil-project";
+function slugifyShareTitle(title) {
+  if (typeof title !== "string") return "movil-project";
   return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "movil-project";
+    .slice(0, 60) || "movil-project";
+}
+
+function getProjectStableKey(project, index) {
+  const safeIndex = Number.isInteger(index) ? index : Number.parseInt(index, 10);
+  const fallbackIndex = Number.isInteger(safeIndex) && safeIndex >= 0 ? safeIndex : 0;
+  if (!project || typeof project !== "object") return `i${fallbackIndex}`;
+
+  const createdAt = project.createdAt || project.created_at || project.created;
+  const timestamp = createdAt ? Date.parse(createdAt) : Number.NaN;
+  if (Number.isFinite(timestamp)) {
+    return `t${timestamp.toString(36)}`;
+  }
+
+  const mediaItems = Array.isArray(project.media) ? project.media : [];
+  const mediaWithId = mediaItems.find(
+    (entry) =>
+      entry &&
+      typeof entry.cloudinaryId === "string" &&
+      entry.cloudinaryId.trim(),
+  );
+  if (mediaWithId) {
+    const cleaned = mediaWithId.cloudinaryId.replace(/[^a-z0-9]+/gi, "").toLowerCase();
+    if (cleaned) {
+      return `m${cleaned.slice(-12)}`;
+    }
+  }
+
+  const mediaWithUrl = mediaItems.find(
+    (entry) => entry && typeof entry.url === "string" && entry.url.trim(),
+  );
+  if (mediaWithUrl) {
+    const cleaned = mediaWithUrl.url.replace(/[^a-z0-9]+/gi, "").toLowerCase();
+    if (cleaned) {
+      return `u${cleaned.slice(-12)}`;
+    }
+  }
+
+  const slug = slugifyShareTitle(project.title || "");
+  if (slug && slug !== "movil-project") {
+    return `s${slug.slice(0, 12)}`;
+  }
+
+  return `i${fallbackIndex}`;
 }
 
 function buildProjectShareId(project, index) {
-  const idx = Number.isInteger(index) ? index : Number.parseInt(index, 10);
-  const safeIndex = Number.isInteger(idx) && idx >= 0 ? idx : 0;
-  const baseSlug = normalizeShareFileName(project?.title || "");
-  return `${safeIndex}-${baseSlug}`;
+  const safeIndex = Number.isInteger(index) ? index : Number.parseInt(index, 10);
+  const fallbackIndex = Number.isInteger(safeIndex) && safeIndex >= 0 ? safeIndex : 0;
+  const stableKey = getProjectStableKey(project, fallbackIndex);
+  const slug = slugifyShareTitle(project?.title || "");
+  return `${stableKey}-${slug}`;
 }
 
 function attachFallbackToImage(img) {
