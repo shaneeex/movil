@@ -639,6 +639,19 @@ header .container {
     padding: 4px 10px;
     letter-spacing: 0.18em;
   }
+  .contact-card-action {
+    width: 100%;
+    justify-content: center;
+  }
+  .contact-card-secondary {
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+  .contact-card-secondary .contact-card-chip {
+    flex: 1 1 48%;
+    min-width: 140px;
+  }
 }
 
 @media (min-width: 960px) {
@@ -1221,6 +1234,19 @@ padding: clamp(66px, 11vh, 100px) 0;
   color: rgba(245, 246, 250, 0.92);
   word-break: break-word;
 }
+.contact-card-value a,
+.contact-inline-link,
+.contact-inline-link:visited {
+  color: rgba(245, 246, 250, 0.92);
+  text-decoration: none;
+  font-weight: inherit;
+  transition: color 0.25s ease;
+}
+.contact-card-value a:hover,
+.contact-inline-link:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
 
 .contact-card-action {
   display: inline-flex;
@@ -1263,6 +1289,7 @@ padding: clamp(66px, 11vh, 100px) 0;
 .contact-card-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   padding: 8px 14px;
   border-radius: 999px;
