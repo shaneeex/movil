@@ -30,6 +30,7 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   const meta = getSharePageMeta(project, index);
+  const redirectHash = `/#project-${index}`;
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -50,7 +51,7 @@ export default withErrorHandling(async function handler(req, res) {
     <meta name="twitter:title" content="${escapeHtml(meta.title)}" />
     <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
     <meta name="twitter:image" content="${escapeHtml(meta.imageUrl)}" />
-    <meta http-equiv="refresh" content="0; url=${escapeHtml(`/#!project-${index}`)}" />
+    <meta http-equiv="refresh" content="0; url=${escapeHtml(redirectHash)}" />
     <style>
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -72,8 +73,8 @@ export default withErrorHandling(async function handler(req, res) {
   <body>
     <main>
       <h1>${escapeHtml(meta.title)}</h1>
-      <p>Redirecting to the featured project…</p>
-      <p><a href="${escapeHtml(`/#!project-${index}`)}">Continue</a></p>
+      <p>Redirecting to the featured project...</p>
+      <p><a href="${escapeHtml(redirectHash)}">Continue</a></p>
     </main>
   </body>
 </html>`);
@@ -87,3 +88,4 @@ function escapeHtml(value = "") {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+

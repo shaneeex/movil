@@ -2,7 +2,7 @@
   "version": 2,
   "routes": [
     { "handle": "filesystem" },
-    { "src": "/p/(?<shareId>[^/]+)", "dest": "/api/p/${shareId}", "check": true }
+    { "src": "/p/(?<shareId>[^/]+)", "dest": "/api/p/$shareId", "check": true }
   ]
 }
 
