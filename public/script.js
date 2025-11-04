@@ -619,8 +619,9 @@ async function loadPublicProjects(page) {
 
     const prioritized = sortProjectsBySpotlight(normalized);
 
-    prioritized.forEach((p) => {
+    prioritized.forEach((p, displayIndex) => {
       p.spotlight = Boolean(p.spotlight);
+      p.__displayIndex = displayIndex;
     });
 
     window.publicProjectsCache = prioritized;
@@ -683,7 +684,9 @@ function renderPublicProjectsPage(page = 1) {
       const firstMedia = mediaItems[0];
       const category = p.category || DEFAULT_PROJECT_CATEGORY;
       const snippetText = getProjectSnippet(p.description || "");
-      const projectIndex = typeof p.__idx === "number" ? p.__idx : offset + idx;
+      const displayIndex =
+        typeof p.__displayIndex === "number" ? p.__displayIndex : offset + idx;
+      const sourceIndex = typeof p.__idx === "number" ? p.__idx : displayIndex;
       const delay = Math.min(idx, 6) * 0.07;
       const isFeatured = Boolean(p.spotlight);
       const featuredVideo = isFeatured
@@ -703,7 +706,7 @@ function renderPublicProjectsPage(page = 1) {
       const snippetHtml = snippetText ? `<p class="project-card-desc">${escapeHtml(snippetText)}</p>` : "";
       const shareHtml = `
         <div class="project-card-actions">
-          <button type="button" class="project-card-share" onclick="shareProject(event, ${projectIndex})" aria-label="Share ${titleText}">
+          <button type="button" class="project-card-share" onclick="shareProject(event, ${displayIndex})" aria-label="Share ${titleText}">
             <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
             <span>Share</span>
           </button>
@@ -734,7 +737,7 @@ function renderPublicProjectsPage(page = 1) {
     grid.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" id="project-${projectIndex}" data-index="${projectIndex}" data-media-index="${safeMediaIndex}" style="--card-delay:${delay}s" onclick="openModal(${projectIndex},${safeMediaIndex})">
+      <div class="${cardClass}" id="project-${displayIndex}" data-index="${sourceIndex}" data-display-index="${displayIndex}" data-media-index="${safeMediaIndex}" style="--card-delay:${delay}s" onclick="openModal(${displayIndex},${safeMediaIndex})">
         <div class="project-card-media">
           ${mediaTag}
         </div>
@@ -815,13 +818,17 @@ function openProjectFromHash() {
     const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
     for (let i = 0; i < projects.length; i += 1) {
       const project = projects[i];
-      const projectIndex = Number.isInteger(project?.__idx) ? project.__idx : i;
-      const candidateId = buildProjectShareId(project, projectIndex);
+      const sourceIndex = Number.isInteger(project?.__idx) ? project.__idx : i;
+      const candidateId = buildProjectShareId(project, sourceIndex);
       if (candidateId === shareId) {
-        const card = document.getElementById(`project-${projectIndex}`);
+        const displayIndex = Number.isInteger(project?.__displayIndex)
+          ? project.__displayIndex
+          : i;
+        const card = document.getElementById(`project-${displayIndex}`);
         if (!card) return;
-        const mediaIndex = Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
-        requestAnimationFrame(() => openModal(projectIndex, mediaIndex));
+        const mediaIndex =
+          Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
+        requestAnimationFrame(() => openModal(displayIndex, mediaIndex, { preserveHash: true, shareId }));
         return;
       }
     }
@@ -833,10 +840,25 @@ function openProjectFromHash() {
   const numericIndex = Number.parseInt(raw, 10);
   if (!Number.isFinite(numericIndex)) return;
 
-  const card = document.getElementById(`project-${numericIndex}`);
-  if (!card) return;
-  const mediaIndex = Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
-  requestAnimationFrame(() => openModal(numericIndex, mediaIndex));
+  let targetDisplayIndex = numericIndex;
+  let card = document.getElementById(`project-${targetDisplayIndex}`);
+
+  if (!card) {
+    const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
+    const project = projects.find(
+      (entry) => Number.isInteger(entry?.__idx) && entry.__idx === numericIndex,
+    );
+    if (!project) return;
+    targetDisplayIndex = Number.isInteger(project.__displayIndex)
+      ? project.__displayIndex
+      : projects.indexOf(project);
+    card = document.getElementById(`project-${targetDisplayIndex}`);
+    if (!card) return;
+  }
+
+  const mediaIndex =
+    Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
+  requestAnimationFrame(() => openModal(targetDisplayIndex, mediaIndex));
 }
 
 async function shareProject(event, projectIndex) {
@@ -846,13 +868,19 @@ async function shareProject(event, projectIndex) {
   }
 
   const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
-  const project = projects.find((p) => p.__idx === projectIndex);
+  let project = projects[projectIndex];
+  if (!project) {
+    project = projects.find((p) =>
+      Number.isInteger(p?.__displayIndex) ? p.__displayIndex === projectIndex : false,
+    );
+  }
   if (!project) return;
 
   const origin =
     window.location?.origin ||
     `${window.location?.protocol || ""}//${window.location?.host || ""}`;
-  const shareId = buildProjectShareId(project, projectIndex);
+  const sourceIndex = Number.isInteger(project.__idx) ? project.__idx : projectIndex;
+  const shareId = buildProjectShareId(project, sourceIndex);
   const sharePath = `/p/${shareId}`;
   const shareUrl = origin ? `${origin}${sharePath}` : sharePath;
   const title = project.title ? String(project.title).trim() : "Movil Project";
@@ -977,7 +1005,7 @@ function unlockBodyScroll() {
   scrollLockY = 0;
 }
 
-function openModal(projectIndex, mediaIndex) {
+function openModal(projectIndex, mediaIndex, options = {}) {
   currentProjectIndex = projectIndex;
   currentMediaIndex = mediaIndex;
   renderModal();
@@ -987,12 +1015,26 @@ function openModal(projectIndex, mediaIndex) {
   modal.style.display = "flex"; // make it visible first
   requestAnimationFrame(() => modal.classList.add("show")); // trigger fade-in
 
-  if (typeof window !== "undefined" && window.history?.replaceState) {
-    const newUrl =
-      `${window.location.pathname}${window.location.search}#project-${projectIndex}`;
-    window.history.replaceState(null, "", newUrl);
-  } else if (typeof window !== "undefined") {
-    window.location.hash = `project-${projectIndex}`;
+  if (typeof window !== "undefined") {
+    if (options.preserveHash) {
+      if (options.shareId) {
+        const targetHash = `#share-${options.shareId}`;
+        const baseUrl = `${window.location.pathname}${window.location.search}`;
+        if (window.location.hash !== targetHash) {
+          if (window.history?.replaceState) {
+            window.history.replaceState(null, "", `${baseUrl}${targetHash}`);
+          } else {
+            window.location.hash = targetHash.slice(1);
+          }
+        }
+      }
+    } else if (window.history?.replaceState) {
+      const newUrl =
+        `${window.location.pathname}${window.location.search}#project-${projectIndex}`;
+      window.history.replaceState(null, "", newUrl);
+    } else {
+      window.location.hash = `project-${projectIndex}`;
+    }
   }
 }
 
