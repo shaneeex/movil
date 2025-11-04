@@ -10,7 +10,14 @@ import {
   sanitizeIncomingMediaEntry,
   sanitizeRemovalEntry,
 } from "../../lib/projects.js";
-import { normalizeCategory, normalizeClient, parseBoolean, safeJSONParse } from "../../lib/utils.js";
+import {
+  normalizeCategory,
+  normalizeClient,
+  normalizeStatus,
+  normalizeTags,
+  parseBoolean,
+  safeJSONParse,
+} from "../../lib/utils.js";
 
 export default withErrorHandling(async function handler(req, res) {
   const index = Number.parseInt(req.query?.index, 10);
@@ -51,6 +58,23 @@ export default withErrorHandling(async function handler(req, res) {
     if (typeof body.category === "string") project.category = normalizeCategory(body.category);
     if (typeof body.client === "string") project.client = normalizeClient(body.client);
 
+    if (body.status !== undefined) {
+      project.status = normalizeStatus(body.status);
+      if (project.status === "draft") {
+        project.spotlight = false;
+      }
+    } else if (body.draft !== undefined) {
+      const isDraft = parseBoolean(body.draft, false);
+      project.status = normalizeStatus(isDraft ? "draft" : "published");
+      if (project.status === "draft") {
+        project.spotlight = false;
+      }
+    }
+
+    if (body.tags !== undefined) {
+      project.tags = normalizeTags(body.tags);
+    }
+
     if (body.spotlight !== undefined) {
       const enableSpotlight = parseBoolean(body.spotlight, false);
       applySpotlight(projects, index, enableSpotlight);
@@ -85,6 +109,23 @@ export default withErrorHandling(async function handler(req, res) {
   if (typeof fields.description === "string") project.description = fields.description.trim();
   if (typeof fields.category === "string") project.category = normalizeCategory(fields.category);
   if (typeof fields.client === "string") project.client = normalizeClient(fields.client);
+
+  if (fields.status !== undefined) {
+    project.status = normalizeStatus(fields.status);
+    if (project.status === "draft") {
+      project.spotlight = false;
+    }
+  } else if (fields.draft !== undefined) {
+    const isDraft = parseBoolean(fields.draft, false);
+    project.status = normalizeStatus(isDraft ? "draft" : "published");
+    if (project.status === "draft") {
+      project.spotlight = false;
+    }
+  }
+
+  if (fields.tags !== undefined) {
+    project.tags = normalizeTags(fields.tags);
+  }
 
   if (fields.spotlight !== undefined) {
     const enableSpotlight = parseBoolean(fields.spotlight, false);

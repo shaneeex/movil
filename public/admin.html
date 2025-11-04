@@ -107,6 +107,26 @@
       cursor: pointer;
     }
 
+    select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 16px;
+      font-size: 0.98rem;
+      background: rgba(12, 13, 18, 0.6);
+      color: #f5f6fa;
+      transition: border-color 0.25s ease, transform 0.25s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: rgba(255, 204, 0, 0.6);
+      box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.12);
+      transform: translateY(-2px);
+    }
+
     input:focus,
     textarea:focus {
       outline: none;
@@ -150,6 +170,71 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: clamp(18px, 3vw, 28px);
+    }
+
+    .admin-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .admin-filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 200px;
+    }
+
+    .admin-filter-group label {
+      font-size: 0.75rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(240, 241, 246, 0.6);
+    }
+
+    .admin-tag-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 44px;
+      align-items: center;
+    }
+
+    .admin-tag-chip,
+    .admin-reset-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(12, 13, 22, 0.65);
+      color: rgba(245, 246, 250, 0.85);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .admin-tag-chip:hover,
+    .admin-tag-chip.active {
+      border-color: rgba(var(--accent-rgb), 0.45);
+      background: rgba(var(--accent-rgb), 0.2);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .admin-reset-btn {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .admin-reset-btn:hover {
+      background: rgba(230, 57, 70, 0.8);
+      border-color: rgba(255, 255, 255, 0.28);
+      color: #fff;
     }
 
     .admin-card {
@@ -203,6 +288,48 @@
       gap: 8px;
       flex: 1;
       min-width: 0;
+    }
+
+    .admin-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .admin-status-chip.published {
+      background: rgba(8, 175, 138, 0.18);
+      color: rgba(180, 255, 226, 0.85);
+      border-color: rgba(8, 175, 138, 0.45);
+    }
+
+    .admin-status-chip.draft {
+      background: rgba(230, 57, 70, 0.18);
+      color: rgba(255, 190, 196, 0.9);
+      border-color: rgba(230, 57, 70, 0.4);
+    }
+
+    .admin-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .admin-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: rgba(245, 246, 250, 0.85);
     }
 
     .admin-client {
@@ -375,6 +502,11 @@
       box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
     }
 
+    .media-item.marked-remove {
+      border-color: rgba(230, 57, 70, 0.5);
+      opacity: 0.6;
+    }
+
     .media-item img,
     .media-item video {
       width: 100%;
@@ -540,6 +672,19 @@
       .admin-card video {
         height: 190px;
       }
+
+      .admin-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .admin-filter-group {
+        min-width: 100%;
+      }
+
+      .admin-reset-btn {
+        align-self: flex-start;
+      }
     }
   </style>
 </head>
@@ -559,6 +704,11 @@
       <input type="text" name="client" placeholder="Client Name" />
       <textarea name="description" placeholder="Description"></textarea>
       <input type="text" name="category" placeholder="Category (e.g., Signage)" />
+      <select name="status" id="uploadStatus" aria-label="Status">
+        <option value="published">Published</option>
+        <option value="draft">Draft</option>
+      </select>
+      <input type="text" name="tags" id="uploadTags" placeholder="Tags (comma separated)" aria-label="Tags" />
       <input type="file" name="media" multiple accept="image/*,video/*" required />
       <button type="submit">Upload Project</button>
       <div class="upload-progress" id="uploadProgress">
@@ -569,6 +719,22 @@
     </form>
 
     <h2 style="margin-top:24px">Existing Projects</h2>
+    <div class="admin-filter-bar">
+      <div class="admin-filter-group">
+        <label for="adminStatusFilter">Status</label>
+        <select id="adminStatusFilter">
+          <option value="all">All</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+      <div class="admin-filter-group">
+        <label>Tags</label>
+        <div id="adminTagFilters" class="admin-tag-filter"></div>
+      </div>
+      <button type="button" id="adminResetFilters" class="admin-reset-btn">Reset</button>
+    </div>
+
     <div id="adminProjects" class="projects-grid"></div>
     <div id="adminProjectsPagination" class="projects-pagination"></div>
   </div>
@@ -583,9 +749,14 @@
       <input type="text" id="editClient" placeholder="Client" />
       <textarea id="editDescription" placeholder="Description"></textarea>
       <input type="text" id="editCategory" placeholder="Category" />
+      <select id="editStatus" aria-label="Status">
+        <option value="published">Published</option>
+        <option value="draft">Draft</option>
+      </select>
+      <input type="text" id="editTags" placeholder="Tags (comma separated)" aria-label="Tags" />
       <div id="editMediaList" class="media-list"></div>
       <input type="file" id="editNewMedia" multiple accept="image/*,video/*" />
-      <button type="submit">💾 Save Changes</button>
+      <button type="submit">Save Changes</button>
     </form>
   </div>
 </div>
@@ -594,3 +765,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

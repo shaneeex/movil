@@ -9,7 +9,13 @@ import {
   applySpotlight,
   sanitizeIncomingMediaEntry,
 } from "../../lib/projects.js";
-import { normalizeCategory, normalizeClient, parseBoolean } from "../../lib/utils.js";
+import {
+  normalizeCategory,
+  normalizeClient,
+  parseBoolean,
+  normalizeStatus,
+  normalizeTags,
+} from "../../lib/utils.js";
 
 export default withErrorHandling(async function handler(req, res) {
   if (req.method === "GET") {
@@ -28,6 +34,10 @@ export default withErrorHandling(async function handler(req, res) {
     const body = await parseJsonBody(req);
     const projects = await getProjects();
     const shouldSpotlight = parseBoolean(body?.spotlight, false);
+    const draftOverride =
+      body?.draft !== undefined ? (parseBoolean(body.draft, false) ? "draft" : "published") : undefined;
+    const status = normalizeStatus(body?.status ?? draftOverride);
+    const tags = normalizeTags(body?.tags);
     const media = Array.isArray(body?.media)
       ? body.media.map(sanitizeIncomingMediaEntry).filter(Boolean)
       : [];
@@ -36,17 +46,21 @@ export default withErrorHandling(async function handler(req, res) {
       return sendJSON(res, 400, { ok: false, error: "At least one media item is required." });
     }
 
+    const spotlightEnabled = status === "published" && shouldSpotlight;
+
     const newProject = {
       title: (body?.title || "").trim(),
       description: (body?.description || "").trim(),
       category: normalizeCategory(body?.category),
       client: normalizeClient(body?.client),
       media,
-      spotlight: shouldSpotlight,
+      spotlight: spotlightEnabled,
+      status,
+      tags,
       createdAt: new Date().toISOString(),
     };
     projects.push(newProject);
-    if (shouldSpotlight) {
+    if (spotlightEnabled) {
       applySpotlight(projects, projects.length - 1, true);
     }
     await saveProjects(projects);
@@ -59,7 +73,13 @@ export default withErrorHandling(async function handler(req, res) {
 
   const projects = await getProjects();
   const shouldSpotlight = parseBoolean(fields.spotlight, false);
+  const draftOverride =
+    fields.draft !== undefined ? (parseBoolean(fields.draft, false) ? "draft" : "published") : undefined;
+  const status = normalizeStatus(fields.status ?? draftOverride);
+  const tags = normalizeTags(fields.tags);
   const media = Array.isArray(files) ? files : [];
+
+  const spotlightEnabled = status === "published" && shouldSpotlight;
 
   const newProject = {
     title: (fields.title || "").trim(),
@@ -67,11 +87,13 @@ export default withErrorHandling(async function handler(req, res) {
     category: normalizeCategory(fields.category),
     client: normalizeClient(fields.client),
     media,
-    spotlight: shouldSpotlight,
+    spotlight: spotlightEnabled,
+    status,
+    tags,
     createdAt: new Date().toISOString(),
   };
   projects.push(newProject);
-  if (shouldSpotlight) {
+  if (spotlightEnabled) {
     applySpotlight(projects, projects.length - 1, true);
   }
   await saveProjects(projects);

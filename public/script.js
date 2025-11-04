@@ -24,6 +24,9 @@ const PROJECTS_SYNC_SOURCE =
 let projectsSyncChannel = null;
 let projectsSyncInitialized = false;
 let pendingProjectsReload = null;
+let adminStatusFilter = "all";
+let adminTagFilter = [];
+let adminAvailableTags = [];
 
 if (typeof window !== "undefined") {
   setupProjectsSync();
@@ -386,6 +389,23 @@ function setProjectFilter(category) {
   renderPublicProjectsPage(1);
 }
 
+function parseTagsInput(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((tag) => (typeof tag === "string" ? tag.trim() : ""))
+      .filter(Boolean)
+      .filter((tag, index, arr) => arr.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
+      .slice(0, 8);
+  }
+  if (typeof value !== "string") return [];
+  return value
+    .split(/[,;]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .filter((tag, index, arr) => arr.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index)
+    .slice(0, 8);
+}
+
 function showProjectsSkeleton(grid) {
   if (!grid || grid.dataset.loading === "1") return;
   grid.dataset.loading = "1";
@@ -711,7 +731,7 @@ async function loadPublicProjects(page) {
     if (!res.ok) throw new Error("Failed to fetch projects");
 
     const rawProjects = await res.json();
-    const normalized = [...rawProjects]
+    const enriched = [...rawProjects]
       .map((project, idx) => {
         const normalized = {
           ...project,
@@ -725,14 +745,21 @@ async function loadPublicProjects(page) {
             : "";
         normalized.client =
           typeof project.client === "string" ? project.client.trim() : "";
-        normalized.spotlight = Boolean(project.spotlight);
+        normalized.status =
+          (project.status || "published").toString().toLowerCase() === "draft"
+            ? "draft"
+            : "published";
+        normalized.tags = parseTagsInput(project.tags || []);
+        normalized.spotlight = normalized.status === "published" && Boolean(project.spotlight);
         return normalized;
       })
       .reverse();
 
-    const prioritized = sortProjectsBySpotlight(normalized);
+    const visibleProjects = enriched.filter((proj) => (proj.status || "published") !== "draft");
+    const prioritized = sortProjectsBySpotlight(visibleProjects);
 
     prioritized.forEach((p, displayIndex) => {
+      p.status = (p.status || "published") === "draft" ? "draft" : "published";
       p.spotlight = Boolean(p.spotlight);
       p.__displayIndex = displayIndex;
     });
@@ -1405,11 +1432,108 @@ async function loadAdminProjects(page = 1) {
     ...project,
     client: typeof project.client === "string" ? project.client.trim() : "",
     media: Array.isArray(project.media) ? project.media : [],
+    status:
+      (project.status || "published").toString().toLowerCase() === "draft" ? "draft" : "published",
+    tags: parseTagsInput(project.tags || []),
     __idx: idx,
   }));
 
   window.adminProjectsCache = normalized;
-  window.adminProjectsDisplay = sortProjectsBySpotlight([...normalized].reverse());
+  adminAvailableTags = collectAdminTags(normalized);
+  adminTagFilter = adminTagFilter.filter((tag) =>
+    adminAvailableTags.some((available) => available.toLowerCase() === tag.toLowerCase()),
+  );
+  window.adminAvailableTags = adminAvailableTags;
+  renderAdminTagFilters();
+  applyAdminFilters(page);
+}
+
+function collectAdminTags(projects = []) {
+  const map = new Map();
+  projects.forEach((project) => {
+    (Array.isArray(project.tags) ? project.tags : []).forEach((tag) => {
+      if (typeof tag !== "string") return;
+      const trimmed = tag.trim();
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, trimmed);
+      }
+    });
+  });
+  return Array.from(map.values()).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
+  );
+}
+
+function renderAdminTagFilters() {
+  const container = $id("adminTagFilters");
+  if (!container) return;
+  container.innerHTML = "";
+  const tags = adminAvailableTags || [];
+  if (!tags.length) {
+    container.innerHTML =
+      '<span class="muted" style="font-size:0.78rem; letter-spacing:0.12em;">No tags yet</span>';
+    return;
+  }
+  tags.forEach((tag) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className =
+      "admin-tag-chip" +
+      (adminTagFilter.some((item) => item.toLowerCase() === tag.toLowerCase()) ? " active" : "");
+    chip.textContent = tag;
+    chip.addEventListener("click", () => toggleAdminTagFilter(tag));
+    container.appendChild(chip);
+  });
+}
+
+function toggleAdminTagFilter(tag) {
+  const normalized = tag.toLowerCase();
+  const existingIndex = adminTagFilter.findIndex(
+    (item) => item.toLowerCase() === normalized,
+  );
+  if (existingIndex >= 0) {
+    adminTagFilter.splice(existingIndex, 1);
+  } else {
+    adminTagFilter.push(tag);
+  }
+  renderAdminTagFilters();
+  applyAdminFilters(1);
+}
+
+function resetAdminFilters() {
+  adminStatusFilter = "all";
+  adminTagFilter = [];
+  const statusSelect = $id("adminStatusFilter");
+  if (statusSelect) statusSelect.value = "all";
+  renderAdminTagFilters();
+  applyAdminFilters(1);
+}
+
+function applyAdminFilters(page = 1) {
+  window.adminStatusFilter = adminStatusFilter;
+  window.adminTagFilter = adminTagFilter;
+  const base = Array.isArray(window.adminProjectsCache) ? [...window.adminProjectsCache] : [];
+  let filtered = base;
+
+  if (adminStatusFilter !== "all") {
+    filtered = filtered.filter(
+      (project) => (project.status || "published") === adminStatusFilter,
+    );
+  }
+
+  if (adminTagFilter.length) {
+    const required = adminTagFilter.map((tag) => tag.toLowerCase());
+    filtered = filtered.filter((project) => {
+      const projectTags = Array.isArray(project.tags)
+        ? project.tags.map((tag) => tag.toLowerCase())
+        : [];
+      return required.every((tag) => projectTags.includes(tag));
+    });
+  }
+
+  window.adminProjectsDisplay = sortProjectsBySpotlight([...filtered].reverse());
   renderAdminProjectsPage(page);
 }
 
@@ -1457,6 +1581,16 @@ function renderAdminProjectsPage(page = 1) {
     const toggleValue = isSpotlight ? "false" : "true";
     const clientName = typeof project.client === "string" ? project.client.trim() : "";
     const clientText = clientName ? `<span class="admin-client">Client: ${escapeHtml(clientName)}</span>` : "";
+    const status = (project.status || "published") === "draft" ? "draft" : "published";
+    const statusChip = `<span class="admin-status-chip ${status}">${status === "draft" ? "Draft" : "Published"}</span>`;
+    const statusToggleLabel = status === "draft" ? "Publish" : "Move to Draft";
+    const statusToggleValue = status === "draft" ? "published" : "draft";
+    const tags = Array.isArray(project.tags) ? project.tags : [];
+    const tagsHtml = tags.length
+      ? `<div class="admin-tags">${tags
+          .map((tag) => `<span class="admin-tag">${escapeHtml(tag)}</span>`)
+          .join("")}</div>`
+      : "";
 
     const mediaMarkup = first?.type === "video"
       ? `<video src="${first.url}" poster="${thumb}" muted playsinline></video>`
@@ -1465,23 +1599,26 @@ function renderAdminProjectsPage(page = 1) {
     container.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" data-index="${originalIndex}" data-spotlight="${isSpotlight}">
+      <div class="${cardClass}" data-index="${originalIndex}" data-spotlight="${isSpotlight}" data-status="${status}">
         ${mediaMarkup}
         <div class="admin-info">
           <div class="admin-title">
             <div class="admin-title-heading">
               <h3 style="margin:0">${titleText}</h3>
+              ${statusChip}
               ${spotlightChip}
             </div>
             <button class="more-btn" aria-label="More" onclick="toggleCardMenu(event, ${originalIndex})">&#8942;</button>
             <div class="more-menu" id="menu-${originalIndex}">
               <button onclick="openEditModal(${originalIndex})">Edit</button>
+              <button onclick="toggleProjectStatus(${originalIndex}, '${statusToggleValue}')">${statusToggleLabel}</button>
               <button onclick="toggleSpotlight(${originalIndex}, ${toggleValue})">${toggleLabel}</button>
               <button onclick="deleteProject(${originalIndex})">Delete</button>
             </div>
           </div>
           <span class="project-card-category">${categoryText}</span>
           ${clientText}
+          ${tagsHtml}
           <p style="margin:.5rem 0 0">${summaryText}</p>
         </div>
       </div>
@@ -1603,6 +1740,157 @@ async function toggleSpotlight(index, enable = true) {
   }
 }
 
+async function toggleProjectStatus(index, nextStatus = "published") {
+  const numericIndex = Number(index);
+  if (!Number.isInteger(numericIndex) || numericIndex < 0) {
+    showAdminToast("Invalid project reference.", "error");
+    return;
+  }
+
+  const normalized =
+    (nextStatus || "published").toString().toLowerCase() === "draft" ? "draft" : "published";
+
+  try {
+    const res = await fetch(`/api/projects/${numericIndex}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: normalized }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Request failed (${res.status})`);
+    }
+
+    document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
+    showAdminToast(
+      normalized === "draft" ? "Project moved to draft." : "Project published.",
+      "success",
+    );
+
+    await loadAdminProjects(window.adminProjectsCurrentPage || 1);
+    if (document.getElementById("projectsGrid")) {
+      const currentPage = window.publicProjectsCurrentPage || 1;
+      try {
+        await loadPublicProjects(currentPage);
+      } catch (refreshErr) {
+        console.error("Public gallery refresh failed:", refreshErr);
+      }
+    }
+
+    broadcastProjectsUpdate({ action: "status", index: numericIndex, status: normalized });
+    return data;
+  } catch (err) {
+    console.error("Status toggle error:", err);
+    showAdminToast(err.message || "Unable to update project status.", "error");
+    return null;
+  }
+}
+
+function openEditModal(index) {
+  const numericIndex = Number(index);
+  if (!Number.isInteger(numericIndex) || numericIndex < 0) {
+    showAdminToast("Invalid project reference.", "error");
+    return;
+  }
+
+  const projects = Array.isArray(window.adminProjectsCache) ? window.adminProjectsCache : [];
+  const project = projects[numericIndex];
+  if (!project) {
+    showAdminToast("Project not found.", "error");
+    return;
+  }
+
+  currentEditIndex = numericIndex;
+  removedMedia = [];
+
+  const titleInput = $id("editTitle");
+  const clientInput = $id("editClient");
+  const descriptionInput = $id("editDescription");
+  const categoryInput = $id("editCategory");
+  const statusSelect = $id("editStatus");
+  const tagsInput = $id("editTags");
+
+  if (titleInput) titleInput.value = project.title || "";
+  if (clientInput) clientInput.value = project.client || "";
+  if (descriptionInput) descriptionInput.value = project.description || "";
+  if (categoryInput) categoryInput.value = project.category || "";
+  if (statusSelect) statusSelect.value = (project.status || "published") === "draft" ? "draft" : "published";
+  if (tagsInput) tagsInput.value = Array.isArray(project.tags) ? project.tags.join(", ") : "";
+
+  renderEditMediaList(project);
+
+  const modal = $id("editModal");
+  if (modal) {
+    modal.style.display = "flex";
+    requestAnimationFrame(() => modal.classList.add("show"));
+  }
+}
+
+function closeEditModal() {
+  const modal = $id("editModal");
+  if (modal) {
+    modal.classList.remove("show");
+    setTimeout(() => {
+      modal.style.display = "none";
+    }, 200);
+  }
+  currentEditIndex = null;
+  removedMedia = [];
+  const editForm = $id("editForm");
+  if (editForm) {
+    editForm.reset();
+  }
+}
+
+function renderEditMediaList(project) {
+  const list = $id("editMediaList");
+  if (!list) return;
+  list.innerHTML = "";
+  const mediaItems = Array.isArray(project?.media) ? project.media : [];
+  if (!mediaItems.length) {
+    list.innerHTML = '<p class="muted">No media uploaded for this project yet.</p>';
+    return;
+  }
+
+  mediaItems.forEach((media, idx) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "media-item";
+    const thumb = getMediaThumb(media);
+    const preview =
+      media?.type === "video"
+        ? `<video src="${media.url}" poster="${thumb}" muted playsinline></video>`
+        : `<img src="${thumb}" alt="Media ${idx + 1}">`;
+    wrapper.innerHTML = `
+      ${preview}
+      <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
+    `;
+    const removeBtn = wrapper.querySelector(".media-remove");
+    const mark = () => {
+      if (!removedMedia.some((entry) => entry?.url === media.url)) {
+        removedMedia.push({
+          url: media.url,
+          thumbnail: media.thumbnail,
+          cloudinaryId: media.cloudinaryId,
+          cloudinaryResourceType: media.cloudinaryResourceType,
+        });
+      }
+      wrapper.classList.add("marked-remove");
+    };
+    const unmark = () => {
+      removedMedia = removedMedia.filter((entry) => entry?.url !== media.url);
+      wrapper.classList.remove("marked-remove");
+    };
+    removeBtn?.addEventListener("click", () => {
+      if (wrapper.classList.contains("marked-remove")) {
+        unmark();
+      } else {
+        mark();
+      }
+    });
+    list.appendChild(wrapper);
+  });
+}
+
 /************ ADMIN: UPLOAD ************/
 $id("uploadForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1658,12 +1946,18 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
       uploadedMedia.push(media);
     }
 
+    const statusValue = (formData.get("status") || "published").toString().toLowerCase();
+    const status = statusValue === "draft" ? "draft" : "published";
+    const tags = parseTagsInput(formData.get("tags") || "");
+
     const payload = {
       title: (formData.get("title") || "").toString().trim(),
       client: (formData.get("client") || "").toString().trim(),
       description: (formData.get("description") || "").toString().trim(),
       category: (formData.get("category") || "").toString().trim(),
       media: uploadedMedia,
+      status,
+      tags,
       spotlight: false,
     };
 
@@ -1689,6 +1983,10 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
     setProgress(100);
     form.reset();
     if (fileInput) fileInput.value = "";
+    const statusSelect = $id("uploadStatus");
+    if (statusSelect) statusSelect.value = "published";
+    const tagsField = $id("uploadTags");
+    if (tagsField) tagsField.value = "";
     showAdminToast("Project uploaded successfully!", "success");
 
     try {
@@ -1725,6 +2023,11 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
   const newFilesInput = document.getElementById("editNewMedia");
   const newFiles = Array.from(newFilesInput?.files || []);
   const saveBtn = e.submitter || document.querySelector('#editForm button[type="submit"]');
+  const statusSelect = document.getElementById("editStatus");
+  const tagsInput = document.getElementById("editTags");
+  const statusValue = statusSelect ? statusSelect.value : "published";
+  const normalizedStatus = statusValue === "draft" ? "draft" : "published";
+  const tags = parseTagsInput(tagsInput?.value || "");
 
   if (saveBtn) {
     saveBtn.dataset.originalText = saveBtn.dataset.originalText || saveBtn.textContent;
@@ -1737,6 +2040,8 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
     client,
     description: description || "",
     category: category || "",
+    status: normalizedStatus,
+    tags,
     removed: Array.isArray(removedMedia) ? removedMedia : [],
     newMedia: [],
   };
@@ -1817,6 +2122,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   initHeroParallax();
   setupHeroBlend();
   initCtaBanner();
+
+  const statusFilterElement = $id("adminStatusFilter");
+  if (statusFilterElement) {
+    statusFilterElement.value = adminStatusFilter;
+    statusFilterElement.addEventListener("change", (event) => {
+      const value = (event.target.value || "all").toString().toLowerCase();
+      adminStatusFilter = ["all", "published", "draft"].includes(value) ? value : "all";
+      applyAdminFilters(1);
+    });
+  }
+
+  const resetFiltersBtn = $id("adminResetFilters");
+  if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener("click", () => resetAdminFilters());
+  }
 
   if (document.getElementById("projectsGrid")) {
     // On public index.html
