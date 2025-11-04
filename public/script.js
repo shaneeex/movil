@@ -808,6 +808,26 @@ function renderProjectsPagination(container, totalPages, currentPage) {
 function openProjectFromHash() {
   if (typeof window === "undefined") return;
   const hash = window.location.hash || "";
+
+  if (hash.startsWith("#share-")) {
+    const shareId = hash.slice("#share-".length).trim();
+    if (!shareId) return;
+    const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
+    for (let i = 0; i < projects.length; i += 1) {
+      const project = projects[i];
+      const projectIndex = Number.isInteger(project?.__idx) ? project.__idx : i;
+      const candidateId = buildProjectShareId(project, projectIndex);
+      if (candidateId === shareId) {
+        const card = document.getElementById(`project-${projectIndex}`);
+        if (!card) return;
+        const mediaIndex = Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
+        requestAnimationFrame(() => openModal(projectIndex, mediaIndex));
+        return;
+      }
+    }
+    return;
+  }
+
   if (!hash.startsWith("#project-")) return;
   const raw = hash.replace("#project-", "");
   const numericIndex = Number.parseInt(raw, 10);

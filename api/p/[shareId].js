@@ -72,7 +72,7 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   const meta = getSharePageMeta(project, matchIndex);
-  const redirectHash = `/#project-${matchIndex}`;
+  const redirectHash = `/#share-${canonicalId}`;
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
