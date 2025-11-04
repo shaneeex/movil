@@ -1093,13 +1093,11 @@ function renderModal() {
   if (media.type === "image") {
     modalMedia.innerHTML = `
       <div class="modal-media-wrapper">
-        <span class="modal-watermark">&copy; Movil</span>
         <img src="${media.url}" alt="${p.title}" class="modal-img modal-media-el">
       </div>`;
   } else {
     modalMedia.innerHTML = `
       <div class="modal-media-wrapper">
-        <span class="modal-watermark">&copy; Movil</span>
         <video src="${media.url}" poster="${poster}" controls muted playsinline preload="metadata" class="modal-video modal-media-el"></video>
       </div>`;
   }
