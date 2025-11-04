@@ -4,6 +4,9 @@ const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
+const prefetchedAssets = new Set();
+let heroParallaxInitialized = false;
+let heroParallaxFrame = null;
 let projectCardObserver = null;
 let sectionObserver = null;
 let featuredMediaObserver = null;
@@ -383,6 +386,62 @@ function setProjectFilter(category) {
   renderPublicProjectsPage(1);
 }
 
+function showProjectsSkeleton(grid) {
+  if (!grid || grid.dataset.loading === "1") return;
+  grid.dataset.loading = "1";
+  const count = window.matchMedia("(min-width: 900px)").matches ? 6 : 4;
+  const skeletonCard = `
+    <div class="project-card-skeleton" aria-hidden="true">
+      <div class="project-card-skeleton__media"></div>
+      <div class="project-card-skeleton__body">
+        <span class="skeleton-line skeleton-line--lg"></span>
+        <span class="skeleton-line skeleton-line--md"></span>
+        <span class="skeleton-line skeleton-line--sm"></span>
+      </div>
+    </div>
+  `;
+  grid.innerHTML = new Array(count).fill(skeletonCard).join("");
+}
+
+function clearProjectsSkeleton(grid) {
+  if (!grid) return;
+  if (grid.dataset.loading === "1") {
+    delete grid.dataset.loading;
+  }
+}
+
+function preloadProjectMedia(projects, maxProjects = 4) {
+  if (!Array.isArray(projects) || !projects.length) return;
+  const slice = projects.slice(0, Math.max(0, maxProjects));
+  slice.forEach((project) => {
+    const mediaItems = Array.isArray(project?.media) ? project.media : [];
+    mediaItems.slice(0, 3).forEach((media) => {
+      if (!media) return;
+      const candidate =
+        media.type === "video"
+          ? media.thumbnail || ""
+          : media.url || media.thumbnail || "";
+      if (!candidate || prefetchedAssets.has(candidate)) return;
+      prefetchedAssets.add(candidate);
+      if (typeof Image === "function") {
+        const img = new Image();
+        img.decoding = "async";
+        img.referrerPolicy = "no-referrer";
+        img.src = candidate;
+      }
+    });
+  });
+}
+
+function preloadAdjacentProjectMedia(centerIndex) {
+  const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
+  if (!projects.length) return;
+  const neighbors = [];
+  if (projects[centerIndex + 1]) neighbors.push(projects[centerIndex + 1]);
+  if (projects[centerIndex - 1]) neighbors.push(projects[centerIndex - 1]);
+  preloadProjectMedia(neighbors, neighbors.length);
+}
+
 function initProjectCardObserver() {
   if (projectCardObserver) return;
   if (typeof IntersectionObserver !== "function") {
@@ -506,6 +565,58 @@ function applyFeaturedMediaObserver(container) {
   });
 }
 
+function initHeroParallax() {
+  if (heroParallaxInitialized || typeof window === "undefined") return;
+  const hero = document.querySelector(".hero");
+  if (!hero) return;
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const pointerFine = window.matchMedia("(pointer: fine)").matches;
+  if (prefersReducedMotion || !pointerFine) return;
+
+  const parallaxTargets = hero.querySelectorAll("[data-depth]");
+  if (!parallaxTargets.length) return;
+
+  heroParallaxInitialized = true;
+  let targetX = 0;
+  let targetY = 0;
+  let currentX = 0;
+  let currentY = 0;
+
+  const animate = () => {
+    currentX += (targetX - currentX) * 0.08;
+    currentY += (targetY - currentY) * 0.08;
+    parallaxTargets.forEach((node) => {
+      const depth = Number.parseFloat(node.dataset.depth || "0");
+      if (!Number.isFinite(depth)) return;
+      const translateX = (currentX * depth * 48).toFixed(2);
+      const translateY = (currentY * depth * 36).toFixed(2);
+      node.style.transform = `translate3d(${translateX}px, ${translateY}px, 0)`;
+    });
+    heroParallaxFrame = requestAnimationFrame(animate);
+  };
+
+  const updatePointer = (event) => {
+    const rect = hero.getBoundingClientRect();
+    targetX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    targetY = ((event.clientY - rect.top) / rect.height) * 2 - 1;
+  };
+
+  const resetPointer = () => {
+    targetX = 0;
+    targetY = 0;
+  };
+
+  hero.addEventListener("pointermove", updatePointer);
+  hero.addEventListener("pointerenter", updatePointer);
+  hero.addEventListener("pointerleave", resetPointer);
+  window.addEventListener("blur", resetPointer);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) resetPointer();
+  });
+
+  animate();
+}
+
 function setupHeroBlend() {
   if (heroBlendObserver || typeof IntersectionObserver !== "function") return;
   const projectsSection = document.getElementById("projects");
@@ -586,6 +697,8 @@ async function loadPublicProjects(page) {
   const grid = document.getElementById("projectsGrid");
   if (!grid) return;
 
+  showProjectsSkeleton(grid);
+
   const currentPage =
     typeof window !== "undefined" && Number.isFinite(Number(window.publicProjectsCurrentPage))
       ? Number(window.publicProjectsCurrentPage)
@@ -626,11 +739,11 @@ async function loadPublicProjects(page) {
 
     window.publicProjectsCache = prioritized;
     if (typeof window.publicProjectsFilter !== "string") {
-      window.publicProjectsFilter = "All";
-    }
+    window.publicProjectsFilter = "All";
+  }
 
-    if (window.publicProjectsFilter !== "All") {
-      const hasActive = prioritized.some(
+  if (window.publicProjectsFilter !== "All") {
+    const hasActive = prioritized.some(
         (proj) => (proj.category || DEFAULT_PROJECT_CATEGORY).toLowerCase() ===
           window.publicProjectsFilter.toLowerCase(),
       );
@@ -640,14 +753,18 @@ async function loadPublicProjects(page) {
     }
 
     buildProjectFilters(prioritized);
+    preloadProjectMedia(prioritized, 6);
 
     const filteredCount = getFilteredProjects().length || 0;
     const totalPages = Math.max(1, Math.ceil(filteredCount / PROJECTS_PER_PAGE));
     const safePage = Math.min(Math.max(requestedPage, 1), totalPages);
     window.publicProjectsCurrentPage = safePage;
     renderPublicProjectsPage(safePage);
+    clearProjectsSkeleton(grid);
   } catch (err) {
     console.error("Failed to load projects:", err);
+    clearProjectsSkeleton(grid);
+    grid.innerHTML = '<div class="projects-empty-state">Unable to load projects right now.</div>';
   }
 }
 
@@ -667,6 +784,7 @@ function paginateProjects(page = 1) {
 function renderPublicProjectsPage(page = 1) {
   const grid = document.getElementById("projectsGrid");
   if (!grid) return;
+  clearProjectsSkeleton(grid);
   const pagination = document.getElementById("projectsPagination");
   const { items, totalPages, currentPage, offset } = paginateProjects(page);
   window.publicProjectsCurrentPage = currentPage;
@@ -757,6 +875,7 @@ function renderPublicProjectsPage(page = 1) {
   attachFallbacks(grid);
   applyProjectCardObserver(grid);
   applyFeaturedMediaObserver(grid);
+  preloadProjectMedia(items, 4);
 
   renderProjectsPagination(pagination, totalPages, currentPage);
   openProjectFromHash();
@@ -1008,6 +1127,11 @@ function unlockBodyScroll() {
 function openModal(projectIndex, mediaIndex, options = {}) {
   currentProjectIndex = projectIndex;
   currentMediaIndex = mediaIndex;
+  const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
+  if (projects[currentProjectIndex]) {
+    preloadProjectMedia([projects[currentProjectIndex]], 1);
+  }
+  preloadAdjacentProjectMedia(currentProjectIndex);
   renderModal();
 
   const modal = document.getElementById("projectModal");
@@ -1690,6 +1814,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
   setupModalInteractions();
   applySectionObserver();
+  initHeroParallax();
   setupHeroBlend();
   initCtaBanner();
 
