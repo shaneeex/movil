@@ -72,7 +72,14 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   const meta = getSharePageMeta(project, matchIndex);
+  const requestOrigin = getRequestOrigin(req);
+  if (requestOrigin) {
+    meta.canonicalUrl = new URL(`/p/${canonicalId}`, requestOrigin).toString();
+    meta.imageUrl = ensureAbsoluteUrl(meta.imageUrl, requestOrigin);
+  }
+
   const redirectHash = `/#share-${canonicalId}`;
+  const redirectScriptTarget = JSON.stringify(redirectHash);
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -93,7 +100,6 @@ export default withErrorHandling(async function handler(req, res) {
     <meta name="twitter:title" content="${escapeHtml(meta.title)}" />
     <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
     <meta name="twitter:image" content="${escapeHtml(meta.imageUrl)}" />
-    <meta http-equiv="refresh" content="0; url=${escapeHtml(redirectHash)}" />
     <style>
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -118,9 +124,47 @@ export default withErrorHandling(async function handler(req, res) {
       <p>Redirecting to the featured project...</p>
       <p><a href="${escapeHtml(redirectHash)}">Continue</a></p>
     </main>
+    <script>
+      (function () {
+        var target = ${redirectScriptTarget};
+        if (typeof window !== "undefined") {
+          try {
+            window.location.replace(target);
+          } catch (err) {
+            window.location.href = target;
+          }
+        }
+      })();
+    </script>
   </body>
 </html>`);
 });
+
+function getRequestOrigin(req) {
+  if (!req || !req.headers) return "";
+  const proto =
+    (req.headers["x-forwarded-proto"] || req.headers["X-Forwarded-Proto"] || "").toString().split(",")[0].trim() ||
+    (req.connection && req.connection.encrypted ? "https" : "http");
+  const hostHeader =
+    req.headers["x-forwarded-host"] ||
+    req.headers["X-Forwarded-Host"] ||
+    req.headers.host ||
+    req.headers.Host ||
+    "";
+  const host = hostHeader.toString().split(",")[0].trim();
+  if (!host) return "";
+  return `${proto}://${host}`;
+}
+
+function ensureAbsoluteUrl(value, origin) {
+  if (!value) return value;
+  try {
+    const parsed = new URL(value, origin);
+    return parsed.toString();
+  } catch {
+    return value;
+  }
+}
 
 function escapeHtml(value = "") {
   return String(value)
