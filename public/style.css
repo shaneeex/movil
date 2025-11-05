@@ -1084,12 +1084,12 @@ header .container {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 150%;
-  height: 150%;
+  width: 165%;
+  height: 165%;
   display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
-  grid-auto-rows: minmax(90px, 1fr);
-  gap: clamp(8px, 1.8vw, 20px);
+  grid-template-columns: repeat(7, minmax(80px, 1fr));
+  grid-auto-rows: minmax(70px, 1fr);
+  gap: clamp(6px, 1.4vw, 16px);
   transform: translate(-50%, -50%) rotate(-3deg) scale(1.06);
   transform-origin: center;
   opacity: 0.55;
@@ -1174,266 +1174,101 @@ header .container {
   animation-delay: var(--tile-overlay-delay, 0s);
 }
 
-.hero-wall__tile:nth-child(1) {
-  --tile-base-rgb: 22, 242, 255;
-  --tile-neon-rgb: 22, 242, 255;
-  --tile-video-duration: 18s;
-  --tile-video-delay: -4s;
-  --tile-flicker-duration: 6.5s;
-  --tile-flicker-delay: -2.2s;
-  --tile-neon-duration: 7.5s;
-  --tile-tilt-duration: 15s;
-  --tile-overlay-duration: 14s;
-  --tile-overlay-delay: -1.6s;
-  --tile-sweep-delay: -2.4s;
+.hero-wall__tile:nth-child(4n + 1) {
+  --tile-base-rgb: var(--accent-rgb);
+  --tile-neon-rgb: var(--accent-rgb);
+  --tile-overlay-alpha: 0.62;
+  --tile-overlay-rotation: 18deg;
 }
 
-.hero-wall__tile:nth-child(2) {
-  --tile-base-rgb: 255, 184, 108;
-  --tile-neon-rgb: 255, 184, 108;
-  --tile-video-duration: 24s;
-  --tile-video-delay: -2.5s;
-  --tile-flicker-duration: 9s;
-  --tile-neon-duration: 11s;
-  --tile-tilt-duration: 19s;
-  --tile-tilt-delay: -1.4s;
-  --tile-overlay-duration: 18s;
+.hero-wall__tile:nth-child(4n + 2) {
+  --tile-base-rgb: var(--accent-mid-rgb);
+  --tile-neon-rgb: var(--accent-mid-rgb);
+  --tile-overlay-alpha: 0.58;
+  --tile-overlay-rotation: -10deg;
 }
 
-.hero-wall__tile:nth-child(3) {
-  --tile-base-rgb: 143, 107, 255;
-  --tile-neon-rgb: 143, 107, 255;
-  --tile-video-duration: 20s;
-  --tile-video-delay: -5s;
-  --tile-flicker-duration: 7s;
-  --tile-neon-duration: 9s;
-  --tile-tilt-duration: 16s;
-  --tile-overlay-delay: -2.2s;
-  --tile-overlay-rotation: -6deg;
+.hero-wall__tile:nth-child(4n + 3) {
+  --tile-base-rgb: var(--accent-alt-rgb);
+  --tile-neon-rgb: var(--accent-alt-rgb);
+  --tile-overlay-alpha: 0.56;
+  --tile-overlay-rotation: 26deg;
 }
 
-.hero-wall__tile:nth-child(4) {
-  --tile-base-rgb: 8, 175, 138;
-  --tile-neon-rgb: 8, 175, 138;
-  --tile-video-duration: 26s;
-  --tile-video-delay: -6.5s;
-  --tile-flicker-duration: 5.5s;
-  --tile-neon-duration: 12s;
-  --tile-tilt-duration: 20s;
-  --tile-tilt-delay: -2.5s;
-  --tile-overlay-duration: 15s;
-  --tile-overlay-delay: -0.9s;
-  --tile-overlay-rotation: 22deg;
+.hero-wall__tile:nth-child(4n) {
+  --tile-base-rgb: var(--primary-rgb);
+  --tile-neon-rgb: var(--primary-rgb);
+  --tile-overlay-alpha: 0.5;
+  --tile-overlay-rotation: -22deg;
 }
 
-.hero-wall__tile:nth-child(5) {
-  --tile-base-rgb: 255, 94, 94;
-  --tile-neon-rgb: 255, 94, 94;
+.hero-wall__tile:nth-child(odd) {
   --tile-video-duration: 19s;
-  --tile-video-delay: -3.4s;
-  --tile-flicker-duration: 5.8s;
-  --tile-neon-duration: 6.5s;
-  --tile-tilt-duration: 14s;
-  --tile-sweep-duration: 8s;
-  --tile-overlay-duration: 12s;
-  --tile-overlay-delay: -1.1s;
-}
-
-.hero-wall__tile:nth-child(6) {
-  --tile-base-rgb: 0, 146, 183;
-  --tile-neon-rgb: 0, 146, 183;
-  --tile-video-duration: 28s;
-  --tile-video-delay: -7.5s;
-  --tile-flicker-duration: 10s;
-  --tile-neon-duration: 13s;
-  --tile-tilt-duration: 23s;
-  --tile-tilt-delay: -3.1s;
-  --tile-overlay-duration: 20s;
-  --tile-overlay-delay: -2.2s;
-}
-
-.hero-wall__tile:nth-child(7) {
-  --tile-base-rgb: 255, 110, 196;
-  --tile-neon-rgb: 255, 110, 196;
-  --tile-video-duration: 22s;
-  --tile-video-delay: -4.2s;
-  --tile-flicker-duration: 6.3s;
-  --tile-neon-duration: 8.5s;
-  --tile-tilt-duration: 18s;
-  --tile-overlay-duration: 13s;
-  --tile-overlay-delay: -1.1s;
-}
-
-.hero-wall__tile:nth-child(8) {
-  --tile-base-rgb: 255, 218, 122;
-  --tile-neon-rgb: 255, 218, 122;
-  --tile-video-duration: 21s;
-  --tile-flicker-duration: 5.2s;
-  --tile-neon-duration: 7.5s;
-  --tile-tilt-duration: 16s;
-  --tile-tilt-delay: -0.9s;
-  --tile-overlay-duration: 11s;
-  --tile-overlay-delay: -0.5s;
-}
-
-.hero-wall__tile:nth-child(9) {
-  --tile-base-rgb: 0, 205, 255;
-  --tile-neon-rgb: 0, 205, 255;
-  --tile-video-duration: 25s;
-  --tile-video-delay: -8s;
-  --tile-flicker-duration: 8s;
-  --tile-neon-duration: 10s;
-  --tile-tilt-duration: 19s;
-  --tile-tilt-delay: -2.2s;
-  --tile-overlay-duration: 19s;
-  --tile-overlay-delay: -2.8s;
-}
-
-.hero-wall__tile:nth-child(10) {
-  --tile-base-rgb: 0, 200, 160;
-  --tile-neon-rgb: 0, 200, 160;
-  --tile-video-duration: 23s;
-  --tile-video-delay: -5.8s;
-  --tile-flicker-duration: 7s;
-  --tile-neon-duration: 9.5s;
-  --tile-tilt-duration: 18s;
-  --tile-overlay-duration: 15s;
-  --tile-overlay-delay: -1.5s;
-  --tile-overlay-rotation: 32deg;
-}
-
-.hero-wall__tile:nth-child(11) {
-  --tile-base-rgb: 22, 242, 255;
-  --tile-neon-rgb: 22, 242, 255;
-  --tile-video-duration: 17s;
-  --tile-video-delay: -1.8s;
-  --tile-flicker-duration: 5.4s;
-  --tile-neon-duration: 6.8s;
-  --tile-tilt-duration: 15s;
-  --tile-sweep-delay: -1.2s;
-  --tile-overlay-duration: 12s;
-  --tile-overlay-delay: -3.1s;
-}
-
-.hero-wall__tile:nth-child(12) {
-  --tile-base-rgb: 255, 184, 108;
-  --tile-neon-rgb: 255, 184, 108;
-  --tile-video-duration: 27s;
-  --tile-video-delay: -7.2s;
-  --tile-flicker-duration: 9.2s;
-  --tile-neon-duration: 11.5s;
-  --tile-tilt-duration: 21s;
-  --tile-tilt-delay: -3.3s;
-  --tile-overlay-duration: 18s;
-  --tile-overlay-delay: -0.9s;
-}
-
-.hero-wall__tile:nth-child(13) {
-  --tile-base-rgb: 143, 107, 255;
-  --tile-neon-rgb: 143, 107, 255;
-  --tile-video-duration: 24s;
-  --tile-video-delay: -9.4s;
-  --tile-flicker-duration: 6.6s;
-  --tile-neon-duration: 9.2s;
+  --tile-video-delay: -3.2s;
+  --tile-flicker-duration: 6.4s;
+  --tile-neon-duration: 8.6s;
   --tile-tilt-duration: 17s;
-  --tile-overlay-duration: 16s;
-  --tile-overlay-delay: -2.4s;
+  --tile-tilt-delay: -1.6s;
+  --tile-overlay-duration: 14s;
 }
 
-.hero-wall__tile:nth-child(14) {
-  --tile-base-rgb: 255, 110, 196;
-  --tile-neon-rgb: 255, 110, 196;
-  --tile-video-duration: 19s;
-  --tile-flicker-duration: 5.7s;
-  --tile-neon-duration: 8.4s;
-  --tile-tilt-duration: 18s;
-  --tile-tilt-delay: -1.8s;
-  --tile-overlay-duration: 14s;
+.hero-wall__tile:nth-child(even) {
+  --tile-video-duration: 24s;
+  --tile-video-delay: -5s;
+  --tile-flicker-duration: 8.8s;
+  --tile-neon-duration: 11.4s;
+  --tile-tilt-duration: 21s;
+  --tile-tilt-delay: -2.8s;
+  --tile-overlay-duration: 18s;
+}
+
+.hero-wall__tile:nth-child(3n + 1) {
+  --tile-video-delay: -4.4s;
+  --tile-sweep-duration: 11s;
+  --tile-sweep-delay: -2.1s;
   --tile-overlay-delay: -1.4s;
 }
 
-.hero-wall__tile:nth-child(15) {
-  --tile-base-rgb: 0, 146, 183;
-  --tile-neon-rgb: 0, 146, 183;
-  --tile-video-duration: 29s;
-  --tile-video-delay: -6.1s;
-  --tile-flicker-duration: 9.8s;
-  --tile-neon-duration: 12.8s;
-  --tile-tilt-duration: 22s;
-  --tile-overlay-duration: 20s;
+.hero-wall__tile:nth-child(3n + 2) {
+  --tile-video-delay: -6.2s;
+  --tile-flicker-duration: 7.6s;
   --tile-overlay-delay: -2.6s;
-  --tile-overlay-rotation: -18deg;
+  --tile-overlay-rotation: 14deg;
 }
 
-.hero-wall__tile:nth-child(16) {
-  --tile-base-rgb: 255, 115, 155;
-  --tile-neon-rgb: 255, 115, 155;
-  --tile-video-duration: 21s;
-  --tile-video-delay: -3.9s;
-  --tile-flicker-duration: 6s;
-  --tile-neon-duration: 8.8s;
-  --tile-tilt-duration: 17s;
-  --tile-overlay-duration: 12s;
-  --tile-overlay-delay: -1.9s;
-}
-
-.hero-wall__tile:nth-child(17) {
-  --tile-base-rgb: 255, 174, 80;
-  --tile-neon-rgb: 255, 174, 80;
-  --tile-video-duration: 26s;
-  --tile-video-delay: -10.2s;
-  --tile-flicker-duration: 7.4s;
-  --tile-neon-duration: 9.8s;
-  --tile-tilt-duration: 20s;
-  --tile-tilt-delay: -2.9s;
-  --tile-overlay-duration: 17s;
-  --tile-overlay-delay: -2.1s;
-}
-
-.hero-wall__tile:nth-child(18) {
-  --tile-base-rgb: 0, 168, 255;
-  --tile-neon-rgb: 0, 168, 255;
-  --tile-video-duration: 23s;
-  --tile-video-delay: -4.7s;
-  --tile-flicker-duration: 8.2s;
-  --tile-neon-duration: 10.6s;
-  --tile-tilt-duration: 19s;
-  --tile-overlay-duration: 15s;
-  --tile-overlay-delay: -1.7s;
-}
-
-.hero-wall__tile:nth-child(19) {
-  --tile-base-rgb: 12, 205, 175;
-  --tile-neon-rgb: 12, 205, 175;
-  --tile-video-duration: 25s;
-  --tile-video-delay: -11.5s;
-  --tile-flicker-duration: 6.8s;
-  --tile-neon-duration: 9.4s;
-  --tile-tilt-duration: 18s;
-  --tile-overlay-duration: 18s;
-  --tile-overlay-delay: -2.9s;
-  --tile-overlay-rotation: 28deg;
-}
-
-.hero-wall__tile:nth-child(20) {
-  --tile-base-rgb: 255, 70, 80;
-  --tile-neon-rgb: 255, 70, 80;
-  --tile-video-duration: 18s;
-  --tile-video-delay: -6.8s;
+.hero-wall__tile:nth-child(3n) {
+  --tile-video-delay: -2.6s;
   --tile-flicker-duration: 5.6s;
-  --tile-neon-duration: 6.8s;
-  --tile-tilt-duration: 15s;
-  --tile-tilt-delay: -1.6s;
-  --tile-overlay-duration: 13s;
-  --tile-overlay-delay: -0.5s;
+  --tile-neon-duration: 7.4s;
+  --tile-overlay-delay: -0.6s;
+  --tile-overlay-duration: 12s;
+}
+
+.hero-wall__tile:nth-child(5n) {
+  --tile-overlay-rotation: -16deg;
+  --tile-overlay-alpha: 0.48;
+  --tile-sweep-delay: -1.2s;
+}
+
+.hero-wall__tile:nth-child(5n + 2) {
+  --tile-overlay-rotation: 32deg;
+  --tile-overlay-alpha: 0.6;
+  --tile-overlay-delay: -3.1s;
+}
+
+.hero-wall__tile:nth-child(5n + 4) {
+  --tile-overlay-rotation: 6deg;
+  --tile-overlay-duration: 16s;
+  --tile-overlay-alpha: 0.54;
 }
 
 @media (max-width: 768px) {
   .hero-wall {
-    width: 210%;
-    height: 210%;
-    grid-template-columns: repeat(4, minmax(90px, 1fr));
-    gap: clamp(6px, 2.6vw, 18px);
+    width: 240%;
+    height: 240%;
+    grid-template-columns: repeat(5, minmax(70px, 1fr));
+    grid-auto-rows: minmax(58px, 1fr);
+    gap: clamp(5px, 2.2vw, 14px);
   }
 }
 
