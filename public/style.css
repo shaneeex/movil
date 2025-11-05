@@ -1348,6 +1348,27 @@ header .container {
     padding: clamp(70px, 18vh, 120px) 0;
   }
 
+  .hero-background {
+    inset: -18% -22% -24%;
+    background-size: 200% 200%, 150% 150%;
+    filter: blur(6px) brightness(1.04) saturate(1.04);
+    animation: heroStripeDrift 24s linear infinite;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  .hero-background::after {
+    background-size: 220% 220%, 160% 160%;
+    animation: heroStripeDrift 20s linear infinite reverse, heroStripePulse 8s ease-in-out infinite;
+    opacity: 0.42;
+  }
+
+  .hero::before {
+    inset: -28% -32% -36%;
+    filter: blur(60px);
+    opacity: 0.5;
+  }
+
   .contact-section {
 padding: clamp(66px, 11vh, 100px) 0;
   }
