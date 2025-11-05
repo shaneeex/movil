@@ -201,20 +201,38 @@
   </main>
 
   <!-- MODAL -->
-  <div id="projectModal" class="modal">
-    <div class="modal-content">
-      <span class="modal-btn close" onclick="closeModal()">&times;</span>
-      <span class="modal-btn left" onclick="prevMedia()">&#10094;</span>
-      <span class="modal-btn right" onclick="nextMedia()">&#10095;</span>
-
-        <div id="modalMediaWrapper">
+  <div id="projectModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <button type="button" class="modal-close" aria-label="Close project details" onclick="closeModal()">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <div class="modal-card__media">
+        <button type="button" class="modal-nav modal-nav--prev" aria-label="Previous media" onclick="prevMedia()">
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+        </button>
+        <div id="modalMediaWrapper" class="modal-card__media-frame">
           <div id="modalMedia"></div>
         </div>
-
-      <h3 id="modalTitle"></h3>
-      <p id="modalClient" class="modal-client"></p>
-      <p id="modalDesc" class="modal-desc"></p>
-      <div id="modalThumbnails" class="thumbnail-strip"></div>
+        <button type="button" class="modal-nav modal-nav--next" aria-label="Next media" onclick="nextMedia()">
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+        <div id="modalThumbnails" class="modal-thumbnails"></div>
+      </div>
+      <aside class="modal-card__info">
+        <div class="modal-chip-row">
+          <span class="modal-chip" id="modalCategory"></span>
+        </div>
+        <h3 id="modalTitle"></h3>
+        <p id="modalClient" class="modal-client"></p>
+        <p id="modalDesc" class="modal-desc"></p>
+        <div id="modalTags" class="modal-tags"></div>
+        <div class="modal-card__actions">
+          <button type="button" id="modalShareButton" class="modal-share-btn">
+            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+            <span>Share Project</span>
+          </button>
+        </div>
+      </aside>
     </div>
   </div>
 

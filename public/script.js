@@ -1,4 +1,4 @@
-ï»¿// @ts-nocheck
+// @ts-nocheck
 /************ PUBLIC (index.html) ************/
 const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
@@ -338,7 +338,7 @@ function getProjectSnippet(text, maxLength = 120) {
     typeof text === "string" ? text.replace(/\s+/g, " ").trim() : "";
   if (!clean) return "";
   return clean.length > maxLength
-    ? `${clean.slice(0, maxLength - 1)}â€¦`
+    ? `${clean.slice(0, maxLength - 1)}…`
     : clean;
 }
 
@@ -940,13 +940,13 @@ function renderProjectsPagination(container, totalPages, currentPage) {
   addButton("Prev", currentPage - 1, currentPage === 1);
   if (start > 1) {
     addButton("1", 1, false, currentPage === 1);
-    if (start > 2) buttons.push(`<span class="pagination-ellipsis">â€¦</span>`);
+    if (start > 2) buttons.push(`<span class="pagination-ellipsis">…</span>`);
   }
   for (let i = start; i <= end; i += 1) {
     addButton(String(i), i, false, i === currentPage);
   }
   if (end < totalPages) {
-    if (end < totalPages - 1) buttons.push(`<span class="pagination-ellipsis">â€¦</span>`);
+    if (end < totalPages - 1) buttons.push(`<span class="pagination-ellipsis">…</span>`);
     addButton(String(totalPages), totalPages, false, currentPage === totalPages);
   }
   addButton("Next", currentPage + 1, currentPage === totalPages);
@@ -1240,22 +1240,22 @@ function renderModal() {
   const modalMedia = document.getElementById("modalMedia");
   if (!modalMedia) return;
   const poster = getMediaThumb(media);
+  const safeTitle = escapeHtml(p.title || "Project");
 
   if (media.type === "image") {
-    modalMedia.innerHTML = `
-      <div class="modal-media-wrapper">
-        <img src="${media.url}" alt="${p.title}" class="modal-img modal-media-el">
-      </div>`;
+    modalMedia.innerHTML = `<img src="${media.url}" alt="${safeTitle}" class="modal-media-el modal-img">`;
   } else {
-    modalMedia.innerHTML = `
-      <div class="modal-media-wrapper">
-        <video src="${media.url}" poster="${poster}" controls muted playsinline preload="metadata" class="modal-video modal-media-el"></video>
-      </div>`;
+    modalMedia.innerHTML = `<video src="${media.url}" poster="${poster}" controls muted playsinline preload="metadata" class="modal-media-el modal-video"></video>`;
   }
   attachFallbacks(modalMedia);
 
   const titleEl = document.getElementById("modalTitle");
   if (titleEl) titleEl.innerText = p.title || "Untitled Project";
+
+  const categoryEl = document.getElementById("modalCategory");
+  if (categoryEl) {
+    categoryEl.textContent = p.category || DEFAULT_PROJECT_CATEGORY;
+  }
 
   const clientEl = document.getElementById("modalClient");
   if (clientEl) {
@@ -1273,10 +1273,31 @@ function renderModal() {
   const descEl = document.getElementById("modalDesc");
   if (descEl) descEl.innerText = p.description || "";
 
+  const tagsEl = document.getElementById("modalTags");
+  if (tagsEl) {
+    const tags = Array.isArray(p.tags)
+      ? p.tags.map((tag) => (typeof tag === "string" ? tag.trim() : "")).filter(Boolean)
+      : [];
+    if (tags.length) {
+      tagsEl.innerHTML = tags
+        .map((tag) => `<span class="modal-tag">${escapeHtml(tag)}</span>`)
+        .join(" ");
+      tagsEl.style.display = "flex";
+    } else {
+      tagsEl.innerHTML = "";
+      tagsEl.style.display = "none";
+    }
+  }
+
+  const shareBtn = document.getElementById("modalShareButton");
+  if (shareBtn) {
+    shareBtn.onclick = (event) => shareProject(event, currentProjectIndex);
+  }
+
   const thumbsHTML = (p.media || [])
     .map((m, i) => {
       const thumb = getMediaThumb(m);
-      const thumbAlt = `${p.title || "Project"} preview ${i + 1}`;
+      const thumbAlt = `${safeTitle} preview ${i + 1}`;
       return `<img src="${thumb}" alt="${thumbAlt}" loading="lazy" class="thumb ${
         i === currentMediaIndex ? "active" : ""
       }" onclick="jumpToMedia(${i})">`;
@@ -1308,7 +1329,7 @@ function handleModalKeydown(event) {
 
 function handleModalTouchStart(e) {
   if (!isModalOpen() || e.touches.length !== 1) return;
-  if (e.target.closest(".modal-btn")) return;
+  if (e.target.closest(".modal-nav") || e.target.closest(".modal-close") || e.target.closest(".modal-thumbnails") || e.target.closest(".modal-share-btn")) return;
   modalTouchActive = true;
   modalTouchStartX = e.touches[0].clientX;
   modalTouchStartY = e.touches[0].clientY;
@@ -1662,13 +1683,13 @@ function renderAdminPagination(container, totalPages, currentPage) {
   addButton("Prev", currentPage - 1, currentPage === 1);
   if (start > 1) {
     addButton("1", 1, false, currentPage === 1);
-    if (start > 2) buttons.push('<span class="pagination-ellipsis">â€¦</span>');
+    if (start > 2) buttons.push('<span class="pagination-ellipsis">…</span>');
   }
   for (let i = start; i <= end; i += 1) {
     addButton(String(i), i, false, i === currentPage);
   }
   if (end < totalPages) {
-    if (end < totalPages - 1) buttons.push('<span class="pagination-ellipsis">â€¦</span>');
+    if (end < totalPages - 1) buttons.push('<span class="pagination-ellipsis">…</span>');
     addButton(String(totalPages), totalPages, false, currentPage === totalPages);
   }
   addButton("Next", currentPage + 1, currentPage === totalPages);
@@ -2163,3 +2184,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target === modal) closeEditModal();
   });
 });
+
+
