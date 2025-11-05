@@ -1084,12 +1084,12 @@ header .container {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 140%;
-  height: 140%;
+  width: 150%;
+  height: 150%;
   display: grid;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
-  grid-auto-rows: minmax(110px, 1fr);
-  gap: clamp(12px, 2.4vw, 28px);
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  grid-auto-rows: minmax(90px, 1fr);
+  gap: clamp(8px, 1.8vw, 20px);
   transform: translate(-50%, -50%) rotate(-3deg) scale(1.06);
   transform-origin: center;
   opacity: 0.55;
@@ -1154,51 +1154,11 @@ header .container {
 
 @media (max-width: 768px) {
   .hero-wall {
-    width: 190%;
-    height: 190%;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: clamp(10px, 3vw, 22px);
+    width: 210%;
+    height: 210%;
+    grid-template-columns: repeat(4, minmax(90px, 1fr));
+    gap: clamp(6px, 2.6vw, 18px);
   }
-}
-
-.hero-orb {
-  position: absolute;
-  width: clamp(220px, 38vw, 360px);
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  opacity: 0.55;
-  background: radial-gradient(circle at 30% 30%, rgba(22, 242, 255, 0.75), transparent 65%),
-              radial-gradient(circle at 70% 70%, rgba(255, 110, 196, 0.6), transparent 60%);
-  transform: translate3d(0, 0, 0);
-  transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-  animation: heroOrbPulse 14s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.hero-orb--one {
-  top: -12%;
-  left: 12%;
-  background: radial-gradient(circle at 28% 28%, rgba(8, 175, 138, 0.8), transparent 60%),
-              radial-gradient(circle at 65% 62%, rgba(0, 105, 197, 0.7), transparent 65%);
-}
-
-.hero-orb--two {
-  bottom: -18%;
-  right: 8%;
-  width: clamp(180px, 32vw, 290px);
-  background: radial-gradient(circle at 24% 32%, rgba(22, 242, 255, 0.7), transparent 65%),
-              radial-gradient(circle at 70% 68%, rgba(143, 107, 255, 0.55), transparent 62%);
-  animation-delay: 2.5s;
-}
-
-.hero-orb--three {
-  top: 32%;
-  right: 58%;
-  width: clamp(140px, 26vw, 220px);
-  background: radial-gradient(circle at 35% 35%, rgba(255, 184, 108, 0.7), transparent 62%),
-              radial-gradient(circle at 70% 70%, rgba(8, 175, 138, 0.55), transparent 60%);
-  animation-delay: 5s;
 }
 
 .hero-grid {
@@ -1410,18 +1370,6 @@ header .container {
   }
 }
 
-@keyframes heroOrbPulse {
-  0%,
-  100% {
-    transform: scale(1) translate3d(0, 0, 0);
-    opacity: 0.45;
-  }
-  50% {
-    transform: scale(1.05) translate3d(0, 12px, 0);
-    opacity: 0.72;
-  }
-}
-
 @keyframes heroGridDrift {
   0% {
     transform: translate3d(0, 0, 0);
@@ -1455,7 +1403,6 @@ header .container {
     opacity: 0;
   }
 
-  .hero-orb,
   .hero-grid {
     animation: none;
     transform: none !important;
