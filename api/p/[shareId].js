@@ -4,11 +4,13 @@ import { getProjects, getSharePageMeta } from "../../lib/projects.js";
 import { buildShareId, buildShareKey, slugify } from "../../lib/utils.js";
 
 export default withErrorHandling(async function handler(req, res) {
-  if (req.method !== "GET") {
+  const method = (req.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") {
     res.statusCode = 405;
-    res.setHeader("Allow", "GET");
+    res.setHeader("Allow", "GET, HEAD");
     return res.end("Method Not Allowed");
   }
+  const isHeadRequest = method === "HEAD";
 
   const rawShareId = req.query?.shareId;
   if (!rawShareId) return notFound(res);
@@ -79,11 +81,19 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   const redirectHash = `/#share-${canonicalId}`;
-  const redirectScriptTarget = JSON.stringify(redirectHash);
-
+  const html = buildShareHtml(meta, redirectHash);
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.end(`<!DOCTYPE html>
+  res.setHeader("Content-Length", Buffer.byteLength(html));
+  if (isHeadRequest) {
+    return res.end();
+  }
+  res.end(html);
+});
+
+function buildShareHtml(meta, redirectHash) {
+  const redirectScriptTarget = JSON.stringify(redirectHash);
+  return `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -137,8 +147,8 @@ export default withErrorHandling(async function handler(req, res) {
       })();
     </script>
   </body>
-</html>`);
-});
+</html>`;
+}
 
 function getRequestOrigin(req) {
   if (!req || !req.headers) return "";
