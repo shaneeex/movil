@@ -389,7 +389,7 @@ header .container {
   position: relative;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
+  cursor: default;
   border-radius: calc(var(--radius) + 2px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(155deg, rgba(17, 18, 28, 0.9), rgba(9, 9, 16, 0.78));
@@ -455,6 +455,19 @@ header .container {
 
 .project-card:hover::after {
   opacity: 0.22;
+}
+
+.project-card-link {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.project-card-link:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.6);
+  outline-offset: 6px;
 }
 
 .project-card-media {
@@ -660,6 +673,8 @@ header .container {
   display: flex;
   gap: 10px;
   align-items: center;
+  justify-content: flex-start;
+  margin: 16px 20px 20px;
 }
 .project-card-share {
   display: inline-flex;

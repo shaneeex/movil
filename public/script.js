@@ -860,6 +860,8 @@ function renderPublicProjectsPage(page = 1) {
       const altText = escapeHtml(`${p.title || "Project"} showcase`);
       const heroMediaIndex = mediaItems.indexOf(heroMedia);
       const safeMediaIndex = heroMediaIndex >= 0 ? heroMediaIndex : 0;
+      const shareId = buildProjectShareId(p, sourceIndex);
+      const detailPath = `/p/${shareId}`;
 
     let mediaTag = "";
     if (featuredVideo) {
@@ -882,19 +884,21 @@ function renderPublicProjectsPage(page = 1) {
     grid.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" id="project-${displayIndex}" data-index="${sourceIndex}" data-display-index="${displayIndex}" data-media-index="${safeMediaIndex}" style="--card-delay:${delay}s" onclick="openModal(${displayIndex},${safeMediaIndex})">
-        <div class="project-card-media">
-          ${mediaTag}
-        </div>
-        <div class="project-card-meta">
-          ${badgeHtml}
-          <span class="project-card-category">${categoryText}</span>
-          <h3>${titleText}</h3>
-          ${clientHtml}
-          ${snippetHtml}
-          ${shareHtml}
-        </div>
-      </div>
+      <article class="${cardClass}" id="project-${displayIndex}" data-index="${sourceIndex}" data-display-index="${displayIndex}" data-media-index="${safeMediaIndex}" style="--card-delay:${delay}s">
+        <a class="project-card-link" href="${detailPath}" aria-label="View ${titleText}">
+          <div class="project-card-media">
+            ${mediaTag}
+          </div>
+          <div class="project-card-meta">
+            ${badgeHtml}
+            <span class="project-card-category">${categoryText}</span>
+            <h3>${titleText}</h3>
+            ${clientHtml}
+            ${snippetHtml}
+          </div>
+        </a>
+        ${shareHtml}
+      </article>
     `
     );
   });
@@ -974,7 +978,7 @@ function openProjectFromHash() {
         if (!card) return;
         const mediaIndex =
           Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
-        requestAnimationFrame(() => openModal(displayIndex, mediaIndex, { preserveHash: true, shareId }));
+        window.location.replace(`/p/${shareId}`);
         return;
       }
     }
@@ -1002,9 +1006,21 @@ function openProjectFromHash() {
     if (!card) return;
   }
 
-  const mediaIndex =
-    Number.parseInt(card.getAttribute("data-media-index") || "0", 10) || 0;
-  requestAnimationFrame(() => openModal(targetDisplayIndex, mediaIndex));
+  const projects = Array.isArray(window.publicProjectsCache) ? window.publicProjectsCache : [];
+  const project = projects.find((entry) => {
+    if (!entry) return false;
+    if (Number.isInteger(entry.__displayIndex) && entry.__displayIndex === targetDisplayIndex) {
+      return true;
+    }
+    return Number.isInteger(entry.__idx) && entry.__idx === numericIndex;
+  });
+  if (!project) return;
+  const sourceIndex = Number.isInteger(project.__idx)
+    ? project.__idx
+    : projects.indexOf(project);
+  if (!Number.isInteger(sourceIndex)) return;
+  const shareId = buildProjectShareId(project, sourceIndex);
+  window.location.replace(`/p/${shareId}`);
 }
 
 async function shareProject(event, projectIndex) {
