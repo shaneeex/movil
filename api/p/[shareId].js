@@ -106,7 +106,6 @@ function buildDetailHtml(meta, project) {
     : "";
   const galleryHtml = renderGallery(project.media || [], meta.title);
   const shareUrlJson = JSON.stringify(meta.canonicalUrl);
-  const shareUrlText = escapeHtml(meta.canonicalUrl);
   const pageTitle = escapeHtml(meta.title);
   const encodedUrl = encodeURIComponent(meta.canonicalUrl);
   const encodedTitle = encodeURIComponent(meta.title);
@@ -116,12 +115,6 @@ function buildDetailHtml(meta, project) {
     whatsapp: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
   };
-  const shareIcons = Object.entries(shareLinks)
-    .map(
-      ([network, url]) =>
-        `<a class="detail-share-link" href="${url}" target="_blank" rel="noopener noreferrer">${network}</a>`
-    )
-    .join("");
   const shareSnippet = escapeHtml(meta.description.slice(0, 140));
   const shareTitleJson = JSON.stringify(meta.title);
   const shareTextJson = JSON.stringify(shareSnippet);
@@ -252,9 +245,8 @@ function buildDetailHtml(meta, project) {
       }
       .detail-share {
         display: flex;
-        gap: 16px;
         flex-wrap: wrap;
-        align-items: center;
+        gap: 12px;
       }
       .detail-share button {
         padding: 12px 22px;
@@ -266,45 +258,30 @@ function buildDetailHtml(meta, project) {
         text-transform: uppercase;
         cursor: pointer;
       }
-      .detail-share-links {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .detail-share-link {
-        padding: 8px 14px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        font-size: 0.72rem;
-        color: rgba(245, 246, 250, 0.82);
-        text-decoration: none;
-      }
       .project-detail__gallery {
         display: grid;
-        gap: 18px;
+        gap: clamp(18px, 3vw, 28px);
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       }
       .detail-media {
         border-radius: 22px;
         border: 1px solid var(--detail-border);
         overflow: hidden;
         background: rgba(0, 0, 0, 0.5);
+        aspect-ratio: 4 / 3;
+        cursor: zoom-in;
+        position: relative;
       }
       .detail-media img,
       .detail-media video {
         width: 100%;
+        height: 100%;
         display: block;
         object-fit: cover;
       }
       .detail-empty {
         margin: 0;
         color: rgba(245, 246, 250, 0.7);
-      }
-      @media (min-width: 960px) {
-        .project-detail__gallery {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
       }
       @media (max-width: 640px) {
         .detail-hero img,
@@ -337,16 +314,16 @@ function buildDetailHtml(meta, project) {
         ${tags}
         <div class="detail-share">
           <button id="detailShareBtn">Share Project</button>
-          <div class="detail-share-links">
-            ${shareIcons}
-          </div>
         </div>
-        <p class="detail-share-hint">${shareUrlText}</p>
       </section>
       <section class="project-detail__gallery">
         ${galleryHtml}
       </section>
     </main>
+    <div class="detail-lightbox" id="detailLightbox" hidden>
+      <button class="detail-lightbox__close" type="button" aria-label="Close media preview">&times;</button>
+      <div class="detail-lightbox__content"></div>
+    </div>
     <script>
       (function () {
         var btn = document.getElementById("detailShareBtn");
@@ -375,6 +352,43 @@ function buildDetailHtml(meta, project) {
           setTimeout(function () {
             btn.textContent = "Share Project";
           }, 2400);
+        });
+      })();
+      (function () {
+        var lightbox = document.getElementById("detailLightbox");
+        if (!lightbox) return;
+        var content = lightbox.querySelector(".detail-lightbox__content");
+        var closeBtn = lightbox.querySelector(".detail-lightbox__close");
+
+        function closeLightbox() {
+          lightbox.hidden = true;
+          content.innerHTML = "";
+          document.body.classList.remove("detail-lightbox--open");
+        }
+
+        document.querySelectorAll(".detail-media").forEach(function (node) {
+          node.addEventListener("click", function () {
+            var type = node.getAttribute("data-type");
+            var full = node.getAttribute("data-full");
+            if (!full) return;
+            document.body.classList.add("detail-lightbox--open");
+            lightbox.hidden = false;
+            if (type === "video") {
+              content.innerHTML =
+                '<video controls autoplay playsinline src="' + full + '"></video>';
+            } else {
+              content.innerHTML =
+                '<img src="' + full + '" alt="Project media full view">';
+            }
+          });
+        });
+
+        closeBtn.addEventListener("click", closeLightbox);
+        lightbox.addEventListener("click", function (event) {
+          if (event.target === lightbox) closeLightbox();
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape" && !lightbox.hidden) closeLightbox();
         });
       })();
     </script>
@@ -456,11 +470,15 @@ function renderMediaFigure(media, idx, title) {
   const alt = escapeHtml(`${title} media ${idx + 1}`);
   if ((media.type || "").toLowerCase() === "video") {
     const poster = escapeHtml(media.thumbnail || media.url);
-    return `<figure class="detail-media detail-media--video">
+    return `<figure class="detail-media detail-media--video" data-type="video" data-full="${escapeHtml(
+      media.url
+    )}">
       <video controls playsinline poster="${poster}" src="${escapeHtml(media.url)}"></video>
     </figure>`;
   }
-  return `<figure class="detail-media detail-media--image">
+  return `<figure class="detail-media detail-media--image" data-type="image" data-full="${escapeHtml(
+    media.url
+  )}">
     <img src="${escapeHtml(media.url)}" loading="lazy" alt="${alt}">
   </figure>`;
 }
