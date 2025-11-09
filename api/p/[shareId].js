@@ -104,11 +104,27 @@ function buildDetailHtml(meta, project) {
         .map((tag) => `<li>${escapeHtml(tag)}</li>`)
         .join("")}</ul>`
     : "";
-  const gallery = renderGallery(project.media || [], meta.title);
+  const galleryHtml = renderGallery(project.media || [], meta.title);
   const shareUrlJson = JSON.stringify(meta.canonicalUrl);
   const shareUrlText = escapeHtml(meta.canonicalUrl);
   const pageTitle = escapeHtml(meta.title);
-
+  const encodedUrl = encodeURIComponent(meta.canonicalUrl);
+  const encodedTitle = encodeURIComponent(meta.title);
+  const shareLinks = {
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
+    whatsapp: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+  };
+  const shareIcons = Object.entries(shareLinks)
+    .map(
+      ([network, url]) =>
+        `<a class="detail-share-link" href="${url}" target="_blank" rel="noopener noreferrer">${network}</a>`
+    )
+    .join("");
+  const shareSnippet = escapeHtml(meta.description.slice(0, 140));
+  const shareTitleJson = JSON.stringify(meta.title);
+  const shareTextJson = JSON.stringify(shareSnippet);
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -130,11 +146,12 @@ function buildDetailHtml(meta, project) {
       :root {
         color-scheme: dark;
         font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --detail-bg: radial-gradient(circle at top, #0a0c1a, #04050b 70%);
-        --detail-card: rgba(14, 16, 28, 0.82);
-        --detail-border: rgba(255, 255, 255, 0.08);
+        --detail-bg: radial-gradient(circle at top, #040614, #02030a 70%);
+        --detail-card: rgba(15, 17, 29, 0.92);
+        --detail-border: rgba(255, 255, 255, 0.09);
         --accent: #08af8a;
         --accent-rgb: 8, 175, 138;
+        --primary-rgb: 54, 76, 177;
       }
       * {
         box-sizing: border-box;
@@ -148,7 +165,10 @@ function buildDetailHtml(meta, project) {
       main {
         width: min(1100px, 94vw);
         margin: 0 auto;
-        padding: clamp(32px, 5vw, 56px) 0 80px;
+        padding: clamp(32px, 6vw, 70px) 0 90px;
+        display: flex;
+        flex-direction: column;
+        gap: clamp(32px, 5vw, 60px);
       }
       .project-detail__header {
         display: flex;
@@ -165,7 +185,7 @@ function buildDetailHtml(meta, project) {
         font-size: 0.92rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: rgba(245, 246, 250, 0.8);
+        color: rgba(245, 246, 250, 0.85);
       }
       .detail-category {
         padding: 6px 16px;
@@ -176,8 +196,7 @@ function buildDetailHtml(meta, project) {
         font-size: 0.75rem;
       }
       .detail-hero {
-        margin-top: 28px;
-        border-radius: 24px;
+        border-radius: 26px;
         border: 1px solid var(--detail-border);
         overflow: hidden;
         box-shadow: 0 32px 60px rgba(3, 3, 10, 0.45);
@@ -189,35 +208,29 @@ function buildDetailHtml(meta, project) {
         max-height: 560px;
         object-fit: cover;
       }
-      .project-detail__body {
-        margin-top: clamp(28px, 5vw, 48px);
+      .project-detail__info {
         display: grid;
-        gap: clamp(24px, 4vw, 40px);
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      }
-      .detail-info {
+        gap: 24px;
         background: var(--detail-card);
-        border-radius: 24px;
+        border-radius: 26px;
         border: 1px solid var(--detail-border);
-        padding: clamp(20px, 3vw, 32px);
-        display: grid;
-        gap: 18px;
+        padding: clamp(24px, 4vw, 36px);
       }
-      .detail-info h1 {
+      .project-detail__info h1 {
         margin: 0;
-        font-size: clamp(2rem, 4vw, 2.8rem);
-        letter-spacing: 0.07em;
+        font-size: clamp(2.2rem, 4vw, 3rem);
+        letter-spacing: 0.1em;
         text-transform: uppercase;
       }
       .detail-description p {
-        margin: 0 0 12px 0;
+        margin: 0 0 12px;
         color: rgba(245, 246, 250, 0.82);
         line-height: 1.7;
       }
       .detail-client {
         margin: 0;
         font-size: 0.95rem;
-        color: rgba(245, 246, 250, 0.85);
+        color: rgba(245, 246, 250, 0.8);
         letter-spacing: 0.08em;
       }
       .detail-tags {
@@ -239,33 +252,44 @@ function buildDetailHtml(meta, project) {
       }
       .detail-share {
         display: flex;
-        gap: 12px;
+        gap: 16px;
         flex-wrap: wrap;
         align-items: center;
       }
       .detail-share button {
-        padding: 10px 18px;
+        padding: 12px 22px;
         border-radius: 999px;
-        border: 1px solid rgba(var(--accent-rgb), 0.5);
+        border: 1px solid rgba(var(--accent-rgb), 0.45);
         background: rgba(var(--accent-rgb), 0.18);
         color: #f5f6fa;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
-        letter-spacing: 0.18em;
         cursor: pointer;
       }
-      .detail-share-hint {
-        font-size: 0.8rem;
-        color: rgba(245, 246, 250, 0.6);
+      .detail-share-links {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .detail-share-link {
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 0.72rem;
+        color: rgba(245, 246, 250, 0.82);
+        text-decoration: none;
       }
       .project-detail__gallery {
         display: grid;
         gap: 18px;
       }
       .detail-media {
-        border-radius: 20px;
+        border-radius: 22px;
         border: 1px solid var(--detail-border);
         overflow: hidden;
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.5);
       }
       .detail-media img,
       .detail-media video {
@@ -277,10 +301,19 @@ function buildDetailHtml(meta, project) {
         margin: 0;
         color: rgba(245, 246, 250, 0.7);
       }
+      @media (min-width: 960px) {
+        .project-detail__gallery {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
       @media (max-width: 640px) {
         .detail-hero img,
         .detail-hero video {
           max-height: 420px;
+        }
+        .detail-share button {
+          width: 100%;
+          text-align: center;
         }
       }
     </style>
@@ -288,7 +321,7 @@ function buildDetailHtml(meta, project) {
   <body>
     <main class="project-detail">
       <div class="project-detail__header">
-        <a class="detail-back" href="/">
+        <a class="detail-back" href="/" aria-label="Back to projects">
           <span aria-hidden="true">←</span>
           Back to Projects
         </a>
@@ -297,20 +330,21 @@ function buildDetailHtml(meta, project) {
       <div class="detail-hero" aria-label="${pageTitle}">
         ${heroMarkup}
       </div>
-      <section class="project-detail__body">
-        <article class="detail-info">
-          <h1>${pageTitle}</h1>
-          ${client}
-          ${descriptionMarkup}
-          ${tags}
-          <div class="detail-share">
-            <button id="detailShareBtn">Copy share link</button>
-            <span class="detail-share-hint">${shareUrlText}</span>
+      <section class="project-detail__info">
+        <h1>${pageTitle}</h1>
+        ${client}
+        ${descriptionMarkup}
+        ${tags}
+        <div class="detail-share">
+          <button id="detailShareBtn">Share Project</button>
+          <div class="detail-share-links">
+            ${shareIcons}
           </div>
-        </article>
-        <div class="project-detail__gallery">
-          ${gallery}
         </div>
+        <p class="detail-share-hint">${shareUrlText}</p>
+      </section>
+      <section class="project-detail__gallery">
+        ${galleryHtml}
       </section>
     </main>
     <script>
@@ -318,15 +352,17 @@ function buildDetailHtml(meta, project) {
         var btn = document.getElementById("detailShareBtn");
         if (!btn) return;
         var shareUrl = ${shareUrlJson};
+        var shareTitle = ${shareTitleJson};
+        var shareText = ${shareTextJson};
         btn.addEventListener("click", function () {
-          var copier = function () {
-            btn.textContent = "Link copied!";
-            setTimeout(function () {
-              btn.textContent = "Copy share link";
-            }, 2400);
-          };
-          if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(shareUrl).then(copier);
+          if (navigator.share) {
+            navigator
+              .share({
+                title: shareTitle,
+                text: shareText,
+                url: shareUrl,
+              })
+              .catch(function () {});
             return;
           }
           var temp = document.createElement("input");
@@ -335,12 +371,52 @@ function buildDetailHtml(meta, project) {
           temp.select();
           document.execCommand("copy");
           document.body.removeChild(temp);
-          copier();
+          btn.textContent = "Link Copied!";
+          setTimeout(function () {
+            btn.textContent = "Share Project";
+          }, 2400);
         });
       })();
     </script>
   </body>
 </html>`;
+}
+
+function getRequestOrigin(req) {
+  if (!req || !req.headers) return "";
+  const proto =
+    (req.headers["x-forwarded-proto"] || req.headers["X-Forwarded-Proto"] || "")
+      .toString()
+      .split(",")[0]
+      .trim() || (req.connection && req.connection.encrypted ? "https" : "http");
+  const hostHeader =
+    req.headers["x-forwarded-host"] ||
+    req.headers["X-Forwarded-Host"] ||
+    req.headers.host ||
+    req.headers.Host ||
+    "";
+  const host = hostHeader.toString().split(",")[0].trim();
+  if (!host) return "";
+  return `${proto}://${host}`;
+}
+
+function ensureAbsoluteUrl(value, origin) {
+  if (!value) return value;
+  try {
+    const parsed = new URL(value, origin);
+    return parsed.toString();
+  } catch {
+    return value;
+  }
+}
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function renderHero(project, meta) {
@@ -399,41 +475,4 @@ function selectPrimaryMedia(project) {
   const firstThumb = mediaList.find((entry) => entry.thumbnail);
   if (firstThumb) return firstThumb;
   return mediaList[0];
-}
-
-function getRequestOrigin(req) {
-  if (!req || !req.headers) return "";
-  const proto =
-    (req.headers["x-forwarded-proto"] || req.headers["X-Forwarded-Proto"] || "")
-      .toString()
-      .split(",")[0]
-      .trim() || (req.connection && req.connection.encrypted ? "https" : "http");
-  const hostHeader =
-    req.headers["x-forwarded-host"] ||
-    req.headers["X-Forwarded-Host"] ||
-    req.headers.host ||
-    req.headers.Host ||
-    "";
-  const host = hostHeader.toString().split(",")[0].trim();
-  if (!host) return "";
-  return `${proto}://${host}`;
-}
-
-function ensureAbsoluteUrl(value, origin) {
-  if (!value) return value;
-  try {
-    const parsed = new URL(value, origin);
-    return parsed.toString();
-  } catch {
-    return value;
-  }
-}
-
-function escapeHtml(value = "") {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
