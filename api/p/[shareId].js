@@ -283,6 +283,42 @@ function buildDetailHtml(meta, project) {
         margin: 0;
         color: rgba(245, 246, 250, 0.7);
       }
+      .detail-lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 3, 8, 0.92);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        z-index: 9999;
+        backdrop-filter: blur(12px);
+      }
+      .detail-lightbox[hidden] {
+        display: none;
+      }
+      .detail-lightbox__content img,
+      .detail-lightbox__content video {
+        max-width: min(90vw, 1200px);
+        max-height: 88vh;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #000;
+      }
+      .detail-lightbox__close {
+        position: absolute;
+        top: 18px;
+        right: 24px;
+        font-size: 2.4rem;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        line-height: 1;
+      }
+      body.detail-lightbox--open {
+        overflow: hidden;
+      }
       @media (max-width: 640px) {
         .detail-hero img,
         .detail-hero video {
