@@ -540,7 +540,9 @@ header .container {
   height: 100%;
   object-fit: cover;
   display: block;
-  transform: scale(1.02);
+  object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+  transform-origin: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+  transform: scale(calc(var(--media-zoom, 1) * 1.02));
   transition: transform 0.65s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.5s ease;
   will-change: transform;
 }
@@ -560,7 +562,7 @@ header .container {
 
 .project-card.visible .project-card-media img,
 .project-card.visible .project-card-media video {
-  transform: scale(1.015);
+  transform: scale(calc(var(--media-zoom, 1) * 1.015));
 }
 
 .project-card:hover .project-card-media::after {
@@ -569,7 +571,7 @@ header .container {
 
 .project-card:hover .project-card-media img,
 .project-card:hover .project-card-media video {
-  transform: scale(1.08);
+  transform: scale(calc(var(--media-zoom, 1) * 1.08));
 }
 
 .video-thumb {
@@ -584,6 +586,9 @@ header .container {
   object-fit: cover;
   display: block;
   background: #000;
+  object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+  transform-origin: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+  transform: scale(var(--media-zoom, 1));
 }
 
 .video-thumb .play-icon {

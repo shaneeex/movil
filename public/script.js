@@ -63,17 +63,39 @@ function getMediaFocus(media) {
   if (!focus || typeof focus !== "object") return null;
   const x = clampMediaFocusValue(Number(focus.x));
   const y = clampMediaFocusValue(Number(focus.y));
-  if (x === null && y === null) return null;
+  const zoomCandidate = clampMediaZoomValue(
+    typeof focus.zoom === "number" ? focus.zoom : Number(focus.zoom),
+  );
+  if (x === null && y === null && zoomCandidate === null) return null;
   return {
     x: x === null ? 50 : x,
     y: y === null ? 50 : y,
+    zoom: zoomCandidate === null ? 1 : zoomCandidate,
   };
 }
 
-function getMediaFocusStyle(media) {
+function clampMediaZoomValue(value) {
+  if (!Number.isFinite(value)) return null;
+  const min = 1;
+  const max = 2;
+  if (value < min) return min;
+  if (value > max) return max;
+  return Math.round(value * 1000) / 1000;
+}
+
+function buildMediaFocusAttr(media) {
   const focus = getMediaFocus(media);
   if (!focus) return "";
-  return `${focus.x}% ${focus.y}%`;
+  const { x, y, zoom } = focus;
+  const parts = [
+    `object-position:${x}% ${y}%`,
+    `--media-focus-x:${x}%`,
+    `--media-focus-y:${y}%`,
+    `--media-origin-x:${x}%`,
+    `--media-origin-y:${y}%`,
+    `--media-zoom:${zoom.toFixed(3)}`,
+  ];
+  return ` style="${parts.join(";")};"`;
 }
 
 function findHeroMediaCandidate(mediaItems = [], heroUrl = "") {
@@ -911,8 +933,7 @@ function renderPublicProjectsPage(page = 1) {
       const detailPath = `/p/${shareId}`;
       const mediaCountText = formatMediaCount(mediaItems);
       const actionsShareMarkup = isFeatured ? "" : shareButtonDefault;
-      const focusStyle = getMediaFocusStyle(heroMedia);
-      const focusAttr = focusStyle ? ` style="object-position: ${focusStyle};"` : "";
+      const focusAttr = buildMediaFocusAttr(heroMedia);
 
     let mediaTag = "";
     if (featuredVideo) {
@@ -1520,12 +1541,20 @@ function refreshHeroIndicators() {
   if (heroField) heroField.value = currentHeroMediaUrl || "";
   document.querySelectorAll("#editMediaList .media-item").forEach((item) => {
     const toggle = item.querySelector(".media-hero-toggle");
+    const focusControls = item.querySelector(".media-focus-controls");
     const mediaUrl = toggle?.dataset.mediaUrl || "";
     const isHero = mediaUrl && mediaUrl === currentHeroMediaUrl;
     item.classList.toggle("media-item--hero", Boolean(isHero));
     if (toggle) {
       toggle.textContent = isHero ? "Cover Image" : "Set as Cover";
       toggle.disabled = Boolean(isHero);
+    }
+    if (focusControls) {
+      if (isHero) {
+        focusControls.removeAttribute("hidden");
+      } else {
+        focusControls.setAttribute("hidden", "hidden");
+      }
     }
   });
 }
@@ -1536,6 +1565,8 @@ function findNextAvailableHeroUrl(excludeUrl = "") {
     if (item.classList.contains("marked-remove")) continue;
     const toggle = item.querySelector(".media-hero-toggle");
     const url = toggle?.dataset.mediaUrl;
+    const type = (toggle?.dataset.mediaType || "").toLowerCase();
+    if (type === "video") continue;
     if (url && url !== excludeUrl) {
       return url;
     }
@@ -2003,21 +2034,24 @@ function renderEditMediaList(project) {
     const focus = getMediaFocus(media);
     const focusX = focus ? focus.x : 50;
     const focusY = focus ? focus.y : 50;
-    const focusStyle = getMediaFocusStyle(media);
-    const focusAttr = focusStyle ? ` style="object-position: ${focusStyle};"` : "";
+    const focusZoom = focus ? focus.zoom : 1;
     const safeUrl = escapeHtml(media.url || `media-${idx}`);
     const isHero = Boolean(currentHeroMediaUrl && media?.url === currentHeroMediaUrl);
     const preview =
       media?.type === "video"
-        ? `<video class="media-preview" src="${media.url}" poster="${thumb}" muted playsinline${focusAttr}></video>`
-        : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy"${focusAttr}>`;
+        ? `<video class="media-preview" src="${media.url}" poster="${thumb}" muted playsinline${buildMediaFocusAttr(
+            media,
+          )}></video>`
+        : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy"${buildMediaFocusAttr(
+            media,
+          )}>`;
     wrapper.innerHTML = `
       ${preview}
       <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
-      <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
+      <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}" data-media-type="${media?.type || "image"}">
         ${isHero ? "Cover Image" : "Set as Cover"}
       </button>
-      <div class="media-focus-controls" data-media-url="${safeUrl}">
+      <div class="media-focus-controls"${isHero ? "" : " hidden"} data-media-url="${safeUrl}">
         <div class="media-focus-row">
           <label>Horizontal</label>
           <input type="range" min="0" max="100" step="1" value="${focusX}" data-focus-axis="x" />
@@ -2027,6 +2061,15 @@ function renderEditMediaList(project) {
           <label>Vertical</label>
           <input type="range" min="0" max="100" step="1" value="${focusY}" data-focus-axis="y" />
           <span class="media-focus-value" data-focus-value="y">${Math.round(focusY)}%</span>
+        </div>
+        <div class="media-focus-row">
+          <label>Zoom</label>
+          <input type="range" min="100" max="200" step="1" value="${Math.round(
+            focusZoom * 100,
+          )}" data-focus-axis="zoom" />
+          <span class="media-focus-value" data-focus-value="zoom">${Math.round(
+            focusZoom * 100,
+          )}%</span>
         </div>
         <div class="media-focus-actions">
           <button type="button" class="media-focus-reset">Center</button>
@@ -2070,6 +2113,11 @@ function renderEditMediaList(project) {
     const heroToggle = wrapper.querySelector(".media-hero-toggle");
     heroToggle?.addEventListener("click", () => {
       if (!media.url) return;
+      const isVideo = (heroToggle.dataset.mediaType || media.type || "").toLowerCase() === "video";
+      if (isVideo) {
+        showAdminToast("Please select an image as the cover.", "error");
+        return;
+      }
       setHeroMediaSelection(media.url);
     });
 
@@ -2079,20 +2127,34 @@ function renderEditMediaList(project) {
       const updatePreviewFocus = () => {
         const xInput = focusControls.querySelector('input[data-focus-axis="x"]');
         const yInput = focusControls.querySelector('input[data-focus-axis="y"]');
+        const zoomInput = focusControls.querySelector('input[data-focus-axis="zoom"]');
         const x = clampMediaFocusValue(Number(xInput?.value));
         const y = clampMediaFocusValue(Number(yInput?.value));
+        const zoom = clampMediaZoomValue(Number(zoomInput?.value) / 100);
         const posX = x === null ? 50 : x;
         const posY = y === null ? 50 : y;
         previewEl.style.objectPosition = `${posX}% ${posY}%`;
+        previewEl.style.transformOrigin = `${posX}% ${posY}%`;
+        previewEl.style.transform = `scale(${zoom === null ? 1 : zoom})`;
+        previewEl.style.setProperty("--media-focus-x", `${posX}%`);
+        previewEl.style.setProperty("--media-focus-y", `${posY}%`);
+        previewEl.style.setProperty("--media-zoom", zoom === null ? 1 : zoom);
       };
       focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
         const axis = input.dataset.focusAxis;
         const valueLabel = focusControls.querySelector(`[data-focus-value="${axis}"]`);
         const syncLabel = () => {
-          const numeric = clampMediaFocusValue(Number(input.value));
-          const displayValue = numeric === null ? 0 : numeric;
-          if (valueLabel) {
-            valueLabel.textContent = `${Math.round(displayValue)}%`;
+          if (axis === "zoom") {
+            const zoom = clampMediaZoomValue(Number(input.value) / 100);
+            if (valueLabel) {
+              valueLabel.textContent = `${Math.round((zoom === null ? 1 : zoom) * 100)}%`;
+            }
+          } else {
+            const numeric = clampMediaFocusValue(Number(input.value));
+            const displayValue = numeric === null ? 50 : numeric;
+            if (valueLabel) {
+              valueLabel.textContent = `${Math.round(displayValue)}%`;
+            }
           }
           updatePreviewFocus();
         };
@@ -2101,15 +2163,20 @@ function renderEditMediaList(project) {
       });
       focusControls.querySelector(".media-focus-reset")?.addEventListener("click", () => {
         focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
-          input.value = "50";
+          if (input.dataset.focusAxis === "zoom") {
+            input.value = "100";
+          } else {
+            input.value = "50";
+          }
           const axis = input.dataset.focusAxis;
           const label = focusControls.querySelector(`[data-focus-value="${axis}"]`);
           if (label) {
-            label.textContent = "50%";
+            label.textContent = axis === "zoom" ? "100%" : "50%";
           }
         });
         updatePreviewFocus();
       });
+      updatePreviewFocus();
     }
     list.appendChild(wrapper);
   });
@@ -2278,16 +2345,20 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
   document.querySelectorAll("#editMediaList .media-focus-controls").forEach((control) => {
     const url = control.dataset.mediaUrl;
     if (!url || removalUrls.has(url)) return;
+    if (!currentHeroMediaUrl || url !== currentHeroMediaUrl) return;
     const xVal = clampMediaFocusValue(
       Number(control.querySelector('input[data-focus-axis="x"]')?.value),
     );
     const yVal = clampMediaFocusValue(
       Number(control.querySelector('input[data-focus-axis="y"]')?.value),
     );
-    if (xVal === null && yVal === null) return;
+    const zoomInput = control.querySelector('input[data-focus-axis="zoom"]');
+    const zoomVal = clampMediaZoomValue(Number(zoomInput?.value) / 100);
+    if (xVal === null && yVal === null && zoomVal === null) return;
     const focus = {};
     if (xVal !== null) focus.x = xVal;
     if (yVal !== null) focus.y = yVal;
+    if (zoomVal !== null) focus.zoom = zoomVal;
     focusEntries.push({ url, focus });
   });
   if (focusEntries.length) {

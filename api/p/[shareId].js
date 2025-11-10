@@ -200,6 +200,9 @@ function buildDetailHtml(meta, project) {
         display: block;
         max-height: 560px;
         object-fit: cover;
+        object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+        transform-origin: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+        transform: scale(var(--media-zoom, 1));
       }
       .project-detail__info {
         display: grid;
@@ -278,6 +281,9 @@ function buildDetailHtml(meta, project) {
         height: 100%;
         display: block;
         object-fit: cover;
+        object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+        transform-origin: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+        transform: scale(var(--media-zoom, 1));
       }
       .detail-empty {
         margin: 0;
@@ -636,10 +642,30 @@ function buildFocusStyleAttr(media) {
   if (!focus || typeof focus !== "object") return "";
   const x = clampFocusValue(Number(focus.x));
   const y = clampFocusValue(Number(focus.y));
-  if (x === null && y === null) return "";
+  const zoom = clampFocusZoom(Number(focus.zoom ?? focus.scale));
+  if (x === null && y === null && zoom === null) return "";
   const posX = x === null ? 50 : x;
   const posY = y === null ? 50 : y;
-  return ` style="object-position: ${posX}% ${posY}%;"`;
+  const props = [
+    `object-position: ${posX}% ${posY}%`,
+    `--media-focus-x: ${posX}%`,
+    `--media-focus-y: ${posY}%`,
+    `--media-origin-x: ${posX}%`,
+    `--media-origin-y: ${posY}%`,
+  ];
+  if (zoom !== null) {
+    props.push(`--media-zoom: ${zoom.toFixed(3)}`);
+  }
+  return ` style="${props.join(";")};"`;
+}
+
+function clampFocusZoom(value) {
+  if (!Number.isFinite(value)) return null;
+  const min = 1;
+  const max = 2;
+  if (value < min) return min;
+  if (value > max) return max;
+  return Math.round(value * 1000) / 1000;
 }
 
 function selectPrimaryMedia(project) {

@@ -515,6 +515,9 @@
       height: 110px;
       object-fit: cover;
       display: block;
+      object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+      transform-origin: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
+      transform: scale(var(--media-zoom, 1));
     }
 
     .media-remove {
@@ -549,6 +552,10 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+
+    .media-focus-controls[hidden] {
+      display: none !important;
     }
 
     .media-item--hero {
@@ -600,6 +607,7 @@
 
     .media-focus-row input[type="range"] {
       flex: 1;
+      width: 100%;
       accent-color: #08af8a;
     }
 
