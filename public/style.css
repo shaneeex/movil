@@ -452,7 +452,6 @@ header .container {
   transform: translate3d(0, 18px, 0) scale(0.98);
   opacity: 0;
   will-change: transform, opacity;
-  transform-style: preserve-3d;
 }
 
 .project-card::before {
@@ -493,15 +492,9 @@ header .container {
 }
 
 .project-card:hover {
-  transform: translate3d(0, -14px, 0) scale(1.03) rotate3d(1, 0.2, 0, 2deg);
+  transform: translate3d(0, -14px, 0) scale(1.03);
   box-shadow: 0 28px 58px rgba(5, 5, 20, 0.5);
   border-color: rgba(255, 255, 255, 0.24);
-}
-
-@media (pointer: coarse) {
-  .project-card:hover {
-    transform: translate3d(0, -8px, 0) scale(1.01);
-  }
 }
 
 .project-card:hover::before {
@@ -695,9 +688,9 @@ header .container {
   font-size: 0.7rem;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: rgba(var(--accent-rgb), 0.92);
-  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.18), rgba(var(--primary-rgb), 0.18));
-  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  color: rgba(var(--accent-rgb), 0.82);
+  background: rgba(var(--accent-rgb), 0.12);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
   border-radius: 999px;
   padding: 4px 14px;
 }
@@ -966,17 +959,6 @@ header .container {
   }
 }
 
-@media (min-width: 960px) {
-  .projects-grid .project-card:nth-child(6n + 1),
-  .projects-grid .project-card:nth-child(6n + 4) {
-    grid-column: span 2;
-    min-height: 520px;
-  }
-  .projects-grid .project-card:nth-child(6n + 3) .project-card-media,
-  .projects-grid .project-card:nth-child(6n + 6) .project-card-media {
-    height: 320px;
-  }
-}
 
 
 /* ===== MODAL ===== */
@@ -2061,25 +2043,6 @@ padding: clamp(66px, 11vh, 100px) 0;
   animation-delay: 0.2s;
 }
 
-.hero-ctas {
-  display: inline-flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.btn.btn-secondary {
-  background: transparent;
-  color: rgba(245, 246, 250, 0.92);
-  border: 1px solid rgba(245, 246, 250, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(245, 246, 250, 0.2);
-}
-
-.btn.btn-secondary:hover {
-  background: rgba(245, 246, 250, 0.1);
-  color: #fff;
-  border-color: rgba(245, 246, 250, 0.8);
-}
 
 .hero h1,
 .hero #heroTitle,
