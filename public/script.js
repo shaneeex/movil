@@ -849,19 +849,18 @@ function renderPublicProjectsPage(page = 1) {
         ? `<p class="project-card-client">Client: ${escapeHtml(clientName)}</p>`
         : "";
       const snippetHtml = snippetText ? `<p class="project-card-desc">${escapeHtml(snippetText)}</p>` : "";
-      const shareHtml = `
-        <div class="project-card-actions">
-          <button type="button" class="project-card-share" onclick="shareProject(event, ${displayIndex})" aria-label="Share ${titleText}">
-            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-            <span>Share</span>
-          </button>
-        </div>
+      const shareButtonHtml = `
+        <button type="button" class="project-card-share" onclick="shareProject(event, ${displayIndex})" aria-label="Share ${titleText}">
+          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+          <span>Share</span>
+        </button>
       `;
       const altText = escapeHtml(`${p.title || "Project"} showcase`);
       const heroMediaIndex = mediaItems.indexOf(heroMedia);
       const safeMediaIndex = heroMediaIndex >= 0 ? heroMediaIndex : 0;
       const shareId = buildProjectShareId(p, sourceIndex);
       const detailPath = `/p/${shareId}`;
+      const mediaCountText = formatMediaCount(mediaItems);
 
     let mediaTag = "";
     if (featuredVideo) {
@@ -897,7 +896,10 @@ function renderPublicProjectsPage(page = 1) {
             ${snippetHtml}
           </div>
         </a>
-        ${shareHtml}
+        <div class="project-card-actions">
+          <span class="project-card-count">${mediaCountText}</span>
+          ${shareButtonHtml}
+        </div>
       </article>
     `
     );
@@ -1092,6 +1094,23 @@ async function shareProject(event, projectIndex) {
 }
 
 window.shareProject = shareProject;
+
+function formatMediaCount(mediaItems) {
+  if (!Array.isArray(mediaItems) || !mediaItems.length) return "No media";
+  const totals = mediaItems.reduce(
+    (acc, item) => {
+      if (!item) return acc;
+      if ((item.type || "").toLowerCase() === "video") acc.videos += 1;
+      else acc.images += 1;
+      return acc;
+    },
+    { images: 0, videos: 0 },
+  );
+  const parts = [];
+  if (totals.images) parts.push(`${totals.images} photo${totals.images > 1 ? "s" : ""}`);
+  if (totals.videos) parts.push(`${totals.videos} video${totals.videos > 1 ? "s" : ""}`);
+  return parts.join(" • ");
+}
 
 function changeProjectsPage(page) {
   renderPublicProjectsPage(page);

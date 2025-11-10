@@ -673,9 +673,15 @@ header .container {
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding: 0 20px 20px;
   margin-top: 6px;
+}
+.project-card-count {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(245, 246, 250, 0.6);
 }
 .project-card-share {
   display: inline-flex;
