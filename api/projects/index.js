@@ -8,6 +8,7 @@ import {
   saveProjects,
   applySpotlight,
   sanitizeIncomingMediaEntry,
+  sanitizeHeroMediaUrl,
 } from "../../lib/projects.js";
 import {
   normalizeCategory,
@@ -54,6 +55,7 @@ export default withErrorHandling(async function handler(req, res) {
       category: normalizeCategory(body?.category),
       client: normalizeClient(body?.client),
       media,
+      heroMediaUrl: sanitizeHeroMediaUrl({ media }, body?.heroMediaUrl),
       spotlight: spotlightEnabled,
       status,
       tags,
@@ -87,6 +89,7 @@ export default withErrorHandling(async function handler(req, res) {
     category: normalizeCategory(fields.category),
     client: normalizeClient(fields.client),
     media,
+    heroMediaUrl: sanitizeHeroMediaUrl({ media }, fields.heroMediaUrl),
     spotlight: spotlightEnabled,
     status,
     tags,

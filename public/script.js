@@ -76,6 +76,32 @@ function getMediaFocusStyle(media) {
   return `${focus.x}% ${focus.y}%`;
 }
 
+function findHeroMediaCandidate(mediaItems = [], heroUrl = "") {
+  if (!Array.isArray(mediaItems) || !mediaItems.length) return null;
+  if (heroUrl) {
+    const match = mediaItems.find((media) => media?.url === heroUrl);
+    if (match) return match;
+  }
+  const firstImage = mediaItems.find(
+    (media) => media && (media.type || "").toLowerCase() !== "video",
+  );
+  return firstImage || null;
+}
+
+function deriveHeroMediaUrl(project) {
+  const mediaItems = Array.isArray(project?.media) ? project.media : [];
+  if (!mediaItems.length) return "";
+  const preferred = typeof project?.heroMediaUrl === "string" ? project.heroMediaUrl.trim() : "";
+  const matched = mediaItems.find((media) => media?.url === preferred);
+  if (matched?.url) return matched.url;
+  const firstImage = mediaItems.find(
+    (media) => media && (media.type || "").toLowerCase() !== "video",
+  );
+  if (firstImage?.url) return firstImage.url;
+  const first = mediaItems.find((media) => media?.url);
+  return first?.url || "";
+}
+
 function slugifyShareTitle(title) {
   if (typeof title !== "string") return "movil-project";
   return title
@@ -863,7 +889,8 @@ function renderPublicProjectsPage(page = 1) {
       const featuredVideo = isFeatured
         ? mediaItems.find((mediaItem) => mediaItem && mediaItem.type === "video")
         : null;
-      const heroMedia = featuredVideo || firstMedia;
+      const heroOverride = findHeroMediaCandidate(mediaItems, p.heroMediaUrl);
+      const heroMedia = heroOverride || featuredVideo || firstMedia;
       if (!heroMedia) return;
 
       const heroThumb = getMediaThumb(heroMedia);
@@ -1449,6 +1476,7 @@ function setupModalInteractions() {
 /**************** GLOBAL ****************/
 let currentEditIndex = null;
 let removedMedia = []; // for deleted items
+let currentHeroMediaUrl = "";
 window.adminProjectsCache = [];
 window.adminProjectsDisplay = [];
 window.adminProjectsCurrentPage = 1;
@@ -1480,6 +1508,39 @@ function showAdminToast(message, type = "info") {
     setTimeout(() => toast.remove(), 320);
   };
   setTimeout(removeToast, 2800);
+}
+
+function setHeroMediaSelection(url) {
+  currentHeroMediaUrl = url || "";
+  refreshHeroIndicators();
+}
+
+function refreshHeroIndicators() {
+  const heroField = $id("editHeroMedia");
+  if (heroField) heroField.value = currentHeroMediaUrl || "";
+  document.querySelectorAll("#editMediaList .media-item").forEach((item) => {
+    const toggle = item.querySelector(".media-hero-toggle");
+    const mediaUrl = toggle?.dataset.mediaUrl || "";
+    const isHero = mediaUrl && mediaUrl === currentHeroMediaUrl;
+    item.classList.toggle("media-item--hero", Boolean(isHero));
+    if (toggle) {
+      toggle.textContent = isHero ? "Cover Image" : "Set as Cover";
+      toggle.disabled = Boolean(isHero);
+    }
+  });
+}
+
+function findNextAvailableHeroUrl(excludeUrl = "") {
+  const items = document.querySelectorAll("#editMediaList .media-item");
+  for (const item of items) {
+    if (item.classList.contains("marked-remove")) continue;
+    const toggle = item.querySelector(".media-hero-toggle");
+    const url = toggle?.dataset.mediaUrl;
+    if (url && url !== excludeUrl) {
+      return url;
+    }
+  }
+  return "";
 }
 
 /**************** FETCH ****************/
@@ -1892,7 +1953,12 @@ function openEditModal(index) {
   if (statusSelect) statusSelect.value = (project.status || "published") === "draft" ? "draft" : "published";
   if (tagsInput) tagsInput.value = Array.isArray(project.tags) ? project.tags.join(", ") : "";
 
+  currentHeroMediaUrl = deriveHeroMediaUrl(project);
+  const heroField = $id("editHeroMedia");
+  if (heroField) heroField.value = currentHeroMediaUrl || "";
+
   renderEditMediaList(project);
+  refreshHeroIndicators();
 
   const modal = $id("editModal");
   if (modal) {
@@ -1911,6 +1977,9 @@ function closeEditModal() {
   }
   currentEditIndex = null;
   removedMedia = [];
+  currentHeroMediaUrl = "";
+  const heroField = $id("editHeroMedia");
+  if (heroField) heroField.value = "";
   const editForm = $id("editForm");
   if (editForm) {
     editForm.reset();
@@ -1937,6 +2006,7 @@ function renderEditMediaList(project) {
     const focusStyle = getMediaFocusStyle(media);
     const focusAttr = focusStyle ? ` style="object-position: ${focusStyle};"` : "";
     const safeUrl = escapeHtml(media.url || `media-${idx}`);
+    const isHero = Boolean(currentHeroMediaUrl && media?.url === currentHeroMediaUrl);
     const preview =
       media?.type === "video"
         ? `<video class="media-preview" src="${media.url}" poster="${thumb}" muted playsinline${focusAttr}></video>`
@@ -1944,6 +2014,9 @@ function renderEditMediaList(project) {
     wrapper.innerHTML = `
       ${preview}
       <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
+      <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
+        ${isHero ? "Cover Image" : "Set as Cover"}
+      </button>
       <div class="media-focus-controls" data-media-url="${safeUrl}">
         <div class="media-focus-row">
           <label>Horizontal</label>
@@ -1960,6 +2033,9 @@ function renderEditMediaList(project) {
         </div>
       </div>
     `;
+    if (isHero) {
+      wrapper.classList.add("media-item--hero");
+    }
     const removeBtn = wrapper.querySelector(".media-remove");
     const mark = () => {
       if (!removedMedia.some((entry) => entry?.url === media.url)) {
@@ -1971,10 +2047,17 @@ function renderEditMediaList(project) {
         });
       }
       wrapper.classList.add("marked-remove");
+      if (media.url && media.url === currentHeroMediaUrl) {
+        const fallback = findNextAvailableHeroUrl(media.url);
+        setHeroMediaSelection(fallback);
+      }
     };
     const unmark = () => {
       removedMedia = removedMedia.filter((entry) => entry?.url !== media.url);
       wrapper.classList.remove("marked-remove");
+      if (!currentHeroMediaUrl && media.url) {
+        setHeroMediaSelection(media.url);
+      }
     };
     removeBtn?.addEventListener("click", () => {
       if (wrapper.classList.contains("marked-remove")) {
@@ -1982,6 +2065,12 @@ function renderEditMediaList(project) {
       } else {
         mark();
       }
+    });
+
+    const heroToggle = wrapper.querySelector(".media-hero-toggle");
+    heroToggle?.addEventListener("click", () => {
+      if (!media.url) return;
+      setHeroMediaSelection(media.url);
     });
 
     const focusControls = wrapper.querySelector(".media-focus-controls");
@@ -2204,6 +2293,9 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
   if (focusEntries.length) {
     payload.mediaFocus = focusEntries;
   }
+  const heroValue =
+    currentHeroMediaUrl && !removalUrls.has(currentHeroMediaUrl) ? currentHeroMediaUrl : "";
+  payload.heroMediaUrl = heroValue;
 
   try {
     if (newFiles.length) {

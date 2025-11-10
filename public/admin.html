@@ -206,14 +206,14 @@
     .admin-reset-btn {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 14px;
+      gap: 4px;
+      padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(12, 13, 22, 0.65);
-      color: rgba(245, 246, 250, 0.85);
-      font-size: 0.78rem;
-      letter-spacing: 0.08em;
+      color: rgba(245, 246, 250, 0.82);
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       cursor: pointer;
       transition: var(--transition);
@@ -548,6 +548,39 @@
       gap: 10px;
     }
 
+    .media-item--hero {
+      border-color: rgba(var(--accent-rgb), 0.5);
+      box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.35), 0 14px 36px rgba(0, 0, 0, 0.38);
+    }
+
+    .media-hero-toggle {
+      width: 100%;
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.86);
+      padding: 6px 10px;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .media-hero-toggle:hover:not(:disabled) {
+      background: rgba(var(--accent-rgb), 0.25);
+      border-color: rgba(var(--accent-rgb), 0.65);
+      color: #fff;
+    }
+
+    .media-hero-toggle:disabled {
+      cursor: default;
+      border-style: solid;
+      background: rgba(var(--accent-rgb), 0.25);
+      color: #fff;
+    }
+
     .media-focus-row {
       display: flex;
       align-items: center;
@@ -595,6 +628,34 @@
     .media-focus-reset:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #fff;
+    }
+
+    .media-focus-row input[type="range"] {
+      appearance: none;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .media-focus-row input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #08af8a;
+      border: 2px solid #0b0b12;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+    }
+
+    .media-focus-row input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #08af8a;
+      border: 2px solid #0b0b12;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
     }
 
     .upload-progress {
@@ -813,6 +874,7 @@
         <option value="draft">Draft</option>
       </select>
       <input type="text" id="editTags" placeholder="Tags (comma separated)" aria-label="Tags" />
+      <input type="hidden" id="editHeroMedia" />
       <div id="editMediaList" class="media-list"></div>
       <input type="file" id="editNewMedia" multiple accept="image/*,video/*" />
       <button type="submit">Save Changes</button>

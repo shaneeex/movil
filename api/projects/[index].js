@@ -10,6 +10,7 @@ import {
   sanitizeIncomingMediaEntry,
   sanitizeRemovalEntry,
   sanitizeMediaFocusUpdate,
+  sanitizeHeroMediaUrl,
 } from "../../lib/projects.js";
 import {
   normalizeCategory,
@@ -76,6 +77,10 @@ export default withErrorHandling(async function handler(req, res) {
       project.tags = normalizeTags(body.tags);
     }
 
+    if (typeof body.heroMediaUrl === "string") {
+      project.heroMediaUrl = body.heroMediaUrl.trim();
+    }
+
     if (body.spotlight !== undefined) {
       const enableSpotlight = parseBoolean(body.spotlight, false);
       applySpotlight(projects, index, enableSpotlight);
@@ -101,6 +106,8 @@ export default withErrorHandling(async function handler(req, res) {
     if (Array.isArray(body?.mediaFocus) && body.mediaFocus.length) {
       applyMediaFocusUpdates(project, body.mediaFocus);
     }
+
+    project.heroMediaUrl = sanitizeHeroMediaUrl(project, project.heroMediaUrl);
 
     await saveProjects(projects);
     return sendJSON(res, 200, { ok: true, project, index });
@@ -130,6 +137,10 @@ export default withErrorHandling(async function handler(req, res) {
 
   if (fields.tags !== undefined) {
     project.tags = normalizeTags(fields.tags);
+  }
+
+  if (typeof fields.heroMediaUrl === "string") {
+    project.heroMediaUrl = fields.heroMediaUrl.trim();
   }
 
   if (fields.spotlight !== undefined) {
@@ -162,6 +173,8 @@ export default withErrorHandling(async function handler(req, res) {
       applyMediaFocusUpdates(project, focusEntries);
     }
   }
+
+  project.heroMediaUrl = sanitizeHeroMediaUrl(project, project.heroMediaUrl);
 
   await saveProjects(projects);
   return sendJSON(res, 200, { ok: true, project, index });

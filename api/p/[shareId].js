@@ -647,6 +647,11 @@ function selectPrimaryMedia(project) {
     ? project.media.filter((entry) => entry && (entry.thumbnail || entry.url))
     : [];
   if (!mediaList.length) return null;
+  const heroUrl = typeof project?.heroMediaUrl === "string" ? project.heroMediaUrl.trim() : "";
+  if (heroUrl) {
+    const heroMedia = mediaList.find((entry) => entry?.url === heroUrl);
+    if (heroMedia) return heroMedia;
+  }
   const firstImage = mediaList.find((entry) => (entry.type || "").toLowerCase() !== "video");
   if (firstImage) return firstImage;
   const firstThumb = mediaList.find((entry) => entry.thumbnail);
