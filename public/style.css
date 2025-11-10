@@ -460,7 +460,7 @@ header .container {
 .project-card-link {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1 1 auto;
   text-decoration: none;
   color: inherit;
 }
@@ -674,7 +674,8 @@ header .container {
   gap: 10px;
   align-items: center;
   justify-content: flex-start;
-  margin: 16px 20px 20px;
+  padding: 0 20px 20px;
+  margin-top: 6px;
 }
 .project-card-share {
   display: inline-flex;
