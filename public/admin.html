@@ -6,7 +6,9 @@
   <title>Movil Admin</title>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png"/>
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="preload" href="style.css" as="style" />
+  <link rel="stylesheet" href="style.css" media="print" onload="this.media='all'" />
+  <noscript><link rel="stylesheet" href="style.css" /></noscript>
   <style>
     body {
       margin: 0;
@@ -894,7 +896,7 @@
 </div>
 
   <div id="adminToastStack" class="toast-stack"></div>
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
 

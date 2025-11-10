@@ -1,6 +1,9 @@
 import { withErrorHandling, notFound } from "../../lib/http.js";
 import { getProjects, getSharePageMeta } from "../../lib/projects.js";
 import { buildShareId, buildShareKey, slugify } from "../../lib/utils.js";
+const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
+const HERO_IMAGE_TRANSFORM = "f_auto,q_auto,c_fill,w_1280,h_720";
+const DETAIL_IMAGE_TRANSFORM = "f_auto,q_auto,c_fill,w_960,h_720";
 
 export default withErrorHandling(async function handler(req, res) {
   const method = (req.method || "GET").toUpperCase();
@@ -593,14 +596,20 @@ function escapeHtml(value = "") {
 function renderHero(project, meta) {
   const media = selectPrimaryMedia(project);
   if (!media) {
-    return `<img src="${escapeHtml(meta.imageUrl)}" alt="${escapeHtml(meta.title)}">`;
+    const fallback = optimizeImageUrl(meta.imageUrl, HERO_IMAGE_TRANSFORM);
+    return `<img src="${escapeHtml(fallback)}" alt="${escapeHtml(meta.title)}" decoding="async" fetchpriority="high">`;
   }
   const focusAttr = buildFocusStyleAttr(media);
   if ((media.type || "").toLowerCase() === "video") {
-    const poster = escapeHtml(media.thumbnail || media.url || meta.imageUrl);
-    return `<video controls playsinline muted poster="${poster}" src="${escapeHtml(media.url)}"${focusAttr}></video>`;
+    const poster = escapeHtml(
+      optimizeImageUrl(media.thumbnail || media.url || meta.imageUrl, HERO_IMAGE_TRANSFORM),
+    );
+    return `<video controls playsinline muted preload="metadata" poster="${poster}" src="${escapeHtml(
+      media.url,
+    )}"${focusAttr}></video>`;
   }
-  return `<img src="${escapeHtml(media.url || meta.imageUrl)}" alt="${escapeHtml(meta.title)}"${focusAttr}>`;
+  const heroUrl = optimizeImageUrl(media.url || meta.imageUrl, HERO_IMAGE_TRANSFORM);
+  return `<img src="${escapeHtml(heroUrl)}" alt="${escapeHtml(meta.title)}" decoding="async" fetchpriority="high"${focusAttr}>`;
 }
 
 function renderDescription(description = "") {
@@ -627,19 +636,20 @@ function renderMediaFigure(media, idx, title) {
   if (!media || !media.url) return "";
   const alt = escapeHtml(`${title} media ${idx + 1}`);
   if ((media.type || "").toLowerCase() === "video") {
-    const poster = escapeHtml(media.thumbnail || media.url);
+    const poster = escapeHtml(optimizeImageUrl(media.thumbnail || media.url, DETAIL_IMAGE_TRANSFORM));
     return `<figure class="detail-media detail-media--video" data-type="video" data-full="${escapeHtml(
       media.url
     )}" data-index="${idx}" data-alt="${alt}">
-      <video controls playsinline muted poster="${poster}" src="${escapeHtml(media.url)}"${buildFocusStyleAttr(
+      <video controls playsinline muted preload="metadata" poster="${poster}" src="${escapeHtml(media.url)}"${buildFocusStyleAttr(
         media
       )}></video>
     </figure>`;
   }
+  const detailUrl = optimizeImageUrl(media.url, DETAIL_IMAGE_TRANSFORM);
   return `<figure class="detail-media detail-media--image" data-type="image" data-full="${escapeHtml(
     media.url
   )}" data-index="${idx}" data-alt="${alt}">
-    <img src="${escapeHtml(media.url)}" loading="lazy" alt="${alt}"${buildFocusStyleAttr(media)}>
+    <img src="${escapeHtml(detailUrl)}" loading="lazy" decoding="async" alt="${alt}"${buildFocusStyleAttr(media)}>
   </figure>`;
 }
 
@@ -680,6 +690,23 @@ function clampFocusZoom(value) {
   if (value < min) return min;
   if (value > max) return max;
   return Math.round(value * 1000) / 1000;
+}
+
+function optimizeImageUrl(url, transform) {
+  if (!url) return url;
+  try {
+    const parsed = new URL(url, "https://placeholder.local");
+    if (!CLOUDINARY_HOST_PATTERN.test(parsed.hostname) || !parsed.pathname.includes("/upload/")) {
+      return parsed.toString();
+    }
+    const [prefix, suffix] = parsed.pathname.split("/upload/");
+    if (!suffix) return parsed.toString();
+    if (suffix.startsWith(transform)) return parsed.toString();
+    parsed.pathname = `${prefix}/upload/${transform}/${suffix.replace(/^\/+/, "")}`;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function selectPrimaryMedia(project) {

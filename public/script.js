@@ -5,6 +5,13 @@ const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
 const prefetchedAssets = new Set();
+const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
+const MEDIA_TRANSFORMS = {
+  grid: "f_auto,q_auto,c_fill,w_720,h_520",
+  hero: "f_auto,q_auto,c_fill,w_1280,h_720",
+  detail: "f_auto,q_auto,c_fill,w_960,h_720",
+  thumb: "f_auto,q_auto,c_fill,w_480,h_360",
+};
 let heroParallaxInitialized = false;
 let heroParallaxFrame = null;
 let projectCardObserver = null;
@@ -43,10 +50,19 @@ function escapeHtml(str) {
 
 
 function getMediaThumb(media) {
+  return getMediaThumbWithVariant(media, "grid");
+}
+
+function getMediaThumbWithVariant(media, variant) {
   if (!media) return VIDEO_THUMB_FALLBACK;
-  if (typeof media.thumbnail === "string" && media.thumbnail.trim()) return media.thumbnail;
+  const transformKey = MEDIA_TRANSFORMS[variant] ? variant : "grid";
+  if (typeof media.thumbnail === "string" && media.thumbnail.trim()) {
+    return optimizeMediaUrl(media.thumbnail, transformKey);
+  }
   if (media.type === "video") return VIDEO_THUMB_FALLBACK;
-  if (typeof media.url === "string" && media.url.trim()) return media.url;
+  if (typeof media.url === "string" && media.url.trim()) {
+    return optimizeMediaUrl(media.url, transformKey);
+  }
   return VIDEO_THUMB_FALLBACK;
 }
 
@@ -96,6 +112,26 @@ function buildMediaFocusAttr(media) {
     `--media-zoom:${zoom.toFixed(3)}`,
   ];
   return ` style="${parts.join(";")};"`;
+}
+
+function optimizeMediaUrl(url, variant = "grid") {
+  if (!url || typeof url !== "string") return url;
+  const transform = MEDIA_TRANSFORMS[variant] || MEDIA_TRANSFORMS.grid;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (!CLOUDINARY_HOST_PATTERN.test(parsed.hostname) || !parsed.pathname.includes("/upload/")) {
+      return parsed.toString();
+    }
+    const [prefix, suffix] = parsed.pathname.split("/upload/");
+    if (!suffix) return parsed.toString();
+    if (suffix.startsWith(transform)) {
+      return parsed.toString();
+    }
+    parsed.pathname = `${prefix}/upload/${transform}/${suffix.replace(/^\/+/, "")}`;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 function findHeroMediaCandidate(mediaItems = [], heroUrl = "") {
@@ -239,10 +275,12 @@ function handleProjectsSyncEvent(payload) {
     pendingProjectsReload = null;
     loadPublicProjects(nextPageCandidate).catch(console.error);
   }, 150);
+  invalidateProjectsCache();
 }
 
 function broadcastProjectsUpdate(detail = {}) {
   if (typeof window === "undefined") return;
+  invalidateProjectsCache();
   setupProjectsSync();
   const payload = {
     type: "projects-updated",
@@ -915,7 +953,7 @@ function renderPublicProjectsPage(page = 1) {
       const heroMedia = heroOverride || featuredVideo || firstMedia;
       if (!heroMedia) return;
 
-      const heroThumb = getMediaThumb(heroMedia);
+      const heroThumb = getMediaThumbWithVariant(heroMedia, "hero");
       const titleText = escapeHtml(p.title || "Untitled Project");
       const categoryText = escapeHtml(category);
       const clientName =
@@ -934,6 +972,7 @@ function renderPublicProjectsPage(page = 1) {
       const mediaCountText = formatMediaCount(mediaItems);
       const actionsShareMarkup = isFeatured ? "" : shareButtonDefault;
       const focusAttr = buildMediaFocusAttr(heroMedia);
+      const imageAttrs = `loading="lazy" decoding="async" fetchpriority="${isFeatured && idx === 0 ? "high" : "auto"}"`;
 
     let mediaTag = "";
     if (featuredVideo) {
@@ -943,12 +982,12 @@ function renderPublicProjectsPage(page = 1) {
     } else if (heroMedia.type === "video") {
       mediaTag = `
         <div class="video-thumb">
-          <img src="${heroThumb}" alt="${altText}" loading="lazy"${focusAttr}>
+          <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
           <span class="play-icon" aria-hidden="true">&#9658;</span>
         </div>
       `;
     } else {
-      mediaTag = `<img src="${heroThumb}" alt="${altText}" loading="lazy"${focusAttr}>`;
+      mediaTag = `<img src="${heroThumb}" alt="${altText}" ${imageAttrs}${focusAttr}>`;
     }
 
     const badgeHtml = isFeatured ? '<span class="project-card-badge">Spotlight</span>' : "";
@@ -1574,9 +1613,13 @@ function findNextAvailableHeroUrl(excludeUrl = "") {
 
 /**************** FETCH ****************/
 async function fetchAllProjects() {
-  const res = await fetch("/api/projects");
+  const cached = readProjectsCache();
+  if (cached) return cached;
+  const res = await fetch("/api/projects", { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch projects");
-  return res.json();
+  const data = await res.json();
+  writeProjectsCache(data);
+  return data;
 }
 
 async function ensureAdminSession() {
@@ -1674,6 +1717,45 @@ function resetAdminFilters() {
   if (statusSelect) statusSelect.value = "all";
   renderAdminTagFilters();
   applyAdminFilters(1);
+}
+
+function readProjectsCache() {
+  if (typeof sessionStorage === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PROJECTS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (!parsed.data || !parsed.timestamp) return null;
+    if (Date.now() - parsed.timestamp > PROJECTS_CACHE_TTL) {
+      sessionStorage.removeItem(PROJECTS_CACHE_KEY);
+      return null;
+    }
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeProjectsCache(data) {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(
+      PROJECTS_CACHE_KEY,
+      JSON.stringify({ data, timestamp: Date.now() }),
+    );
+  } catch {
+    /* ignore storage quota errors */
+  }
+}
+
+function invalidateProjectsCache() {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(PROJECTS_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 function applyAdminFilters(page = 1) {
@@ -2040,7 +2122,7 @@ function renderEditMediaList(project) {
         ? `<video class="media-preview" src="${media.url}" poster="${thumb}" muted playsinline${buildMediaFocusAttr(
             media,
           )}></video>`
-        : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy"${buildMediaFocusAttr(
+        : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy" decoding="async"${buildMediaFocusAttr(
             media,
           )}>`;
     wrapper.innerHTML = `
