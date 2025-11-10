@@ -394,7 +394,7 @@ function buildDetailHtml(meta, project) {
   <body>
     <main class="project-detail">
       <div class="project-detail__header">
-        <a class="detail-back" href="/" aria-label="Back to projects">
+        <a class="detail-back" id="detailBackLink" href="/" aria-label="Back to projects">
           <span aria-hidden="true">←</span>
           Back to Projects
         </a>
@@ -423,6 +423,20 @@ function buildDetailHtml(meta, project) {
       <div class="detail-lightbox__content"></div>
     </div>
     <script>
+      (function () {
+        var backLink = document.getElementById("detailBackLink");
+        if (!backLink) return;
+        backLink.addEventListener("click", function (event) {
+          event.preventDefault();
+          var ref = document.referrer || "";
+          var sameOrigin = ref && ref.indexOf(window.location.origin) === 0;
+          if (sameOrigin && window.history.length > 1) {
+            window.history.back();
+          } else {
+            window.location.href = backLink.getAttribute("href") || "/";
+          }
+        });
+      })();
       (function () {
         var btn = document.getElementById("detailShareBtn");
         if (!btn) return;
