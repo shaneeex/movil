@@ -675,21 +675,26 @@ header .container {
 
 .project-card-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 20px 20px;
-  margin-top: auto;
-  width: 100%;
+  margin-top: 6px;
 }
 .project-card-count {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: rgba(245, 246, 250, 0.65);
 }
+.project-card-actions .project-card-share {
+  margin-left: 0;
+}
 .project-card-share--inline {
-  align-self: flex-end;
+  align-self: flex-start;
   margin-bottom: 12px;
 }
 .project-card-share {
