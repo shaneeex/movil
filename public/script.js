@@ -12,6 +12,10 @@ const MEDIA_TRANSFORMS = {
   detail: "f_auto,q_auto,c_fill,w_960,h_720",
   thumb: "f_auto,q_auto,c_fill,w_480,h_360",
 };
+const scheduleIdle =
+  typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
+    ? (cb) => window.requestIdleCallback(cb, { timeout: 120 })
+    : (cb) => setTimeout(cb, 1);
 let heroParallaxInitialized = false;
 let heroParallaxFrame = null;
 let projectCardObserver = null;
@@ -34,6 +38,8 @@ let pendingProjectsReload = null;
 let adminStatusFilter = "all";
 let adminTagFilter = [];
 let adminAvailableTags = [];
+const PROJECTS_CACHE_KEY = "movilstudio:projects-cache";
+const PROJECTS_CACHE_TTL = 30 * 1000;
 
 if (typeof window !== "undefined") {
   setupProjectsSync();
@@ -635,6 +641,16 @@ function initSectionObserver() {
 }
 
 function applySectionObserver() {
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) {
+    document.querySelectorAll(".reveal-section").forEach((section) => {
+      section.classList.add("section-visible");
+    });
+    return;
+  }
   if (typeof IntersectionObserver !== "function") {
     document.querySelectorAll('.reveal-section').forEach((section) => {
       section.classList.add('section-visible');
@@ -2515,10 +2531,14 @@ async function deleteProject(index) {
 document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
   setupModalInteractions();
-  applySectionObserver();
-  initHeroParallax();
-  setupHeroBlend();
-  initCtaBanner();
+  scheduleIdle(() => {
+    applySectionObserver();
+  });
+  scheduleIdle(() => {
+    initHeroParallax();
+    setupHeroBlend();
+    initCtaBanner();
+  });
 
   const statusFilterElement = $id("adminStatusFilter");
   if (statusFilterElement) {

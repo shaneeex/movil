@@ -26,6 +26,26 @@
   --skeleton-glow: rgba(255, 255, 255, 0.18);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@supports (content-visibility: auto) {
+  main section,
+  .project-card,
+  .projects-grid {
+    content-visibility: auto;
+    contain-intrinsic-size: 400px 600px;
+  }
+}
+
 *,
 *::before,
 *::after {

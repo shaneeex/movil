@@ -695,7 +695,7 @@ function clampFocusZoom(value) {
 function optimizeImageUrl(url, transform) {
   if (!url) return url;
   try {
-    const parsed = new URL(url, "https://placeholder.local");
+    const parsed = new URL(url);
     if (!CLOUDINARY_HOST_PATTERN.test(parsed.hostname) || !parsed.pathname.includes("/upload/")) {
       return parsed.toString();
     }
