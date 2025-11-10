@@ -669,22 +669,29 @@ header .container {
 .project-card:hover .project-card-desc {
   color: rgba(245, 246, 250, 0.92);
 }
+.project-card {
+  position: relative;
+}
+
 .project-card-actions {
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
   padding: 0 20px 20px;
   margin-top: 6px;
 }
 .project-card-count {
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(245, 246, 250, 0.6);
+  color: rgba(245, 246, 250, 0.65);
 }
 .project-card-actions .project-card-share {
-  margin-left: auto;
+  margin-left: 0;
 }
 .project-card-share--inline {
   align-self: flex-start;
