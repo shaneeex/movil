@@ -495,6 +495,7 @@ header .container {
   min-height: 100%;
   background: linear-gradient(155deg, rgba(22, 24, 38, 0.92), rgba(9, 10, 18, 0.82));
   flex-direction: column;
+  --featured-card-columns: minmax(340px, 1.55fr) minmax(280px, 1fr);
   --project-card-inline-pad: clamp(22px, 3.4vw, 34px);
   --project-card-block-pad: clamp(20px, 3vw, 30px);
   position: relative;
@@ -871,21 +872,39 @@ header .container {
   }
 }
 
-@media (min-width: 960px) {
+@media (min-width: 840px) {
   .project-card--featured {
     grid-column: 1 / -1;
-    flex-direction: row;
-    min-height: 360px;
+    display: grid;
+    grid-template-columns: var(--featured-card-columns);
+    grid-template-rows: auto auto;
+    min-height: 380px;
+  }
+
+  .project-card--featured .project-card-link {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: var(--featured-card-columns);
   }
 
   .project-card--featured .project-card-media {
-    flex: 1.6;
-    height: auto;
+    grid-column: 1 / 2;
+    height: 100%;
   }
 
   .project-card--featured .project-card-meta {
-    flex: 1;
-    padding: 32px 36px;
+    grid-column: 2 / 3;
+    height: 100%;
+  }
+
+  .project-card--featured .project-card-actions {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    margin-top: 0;
+    padding: clamp(14px, 2vw, 20px) var(--project-card-inline-pad) clamp(20px, 2.6vw, 28px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: transparent;
+    justify-content: flex-start;
   }
 }
 
