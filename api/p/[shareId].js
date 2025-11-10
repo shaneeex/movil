@@ -314,19 +314,6 @@ function buildDetailHtml(meta, project) {
         border: 1px solid rgba(255, 255, 255, 0.12);
         background: #000;
       }
-      .detail-lightbox__progress {
-        position: absolute;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.55);
-        padding: 6px 14px;
-        border-radius: 999px;
-        font-size: 0.85rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-      }
       .detail-lightbox__close {
         position: absolute;
         top: 18px;
@@ -432,12 +419,11 @@ function buildDetailHtml(meta, project) {
         ${galleryHtml}
       </section>
     </main>
-    <div class="detail-lightbox" id="detailLightbox" hidden data-media-count="${Array.isArray(project.media) ? project.media.length : 0}">
+    <div class="detail-lightbox" id="detailLightbox" hidden>
       <button class="detail-lightbox__close" type="button" aria-label="Close media preview">&times;</button>
       <button class="detail-lightbox__nav detail-lightbox__prev" type="button" aria-label="View previous media">&#10094;</button>
       <button class="detail-lightbox__nav detail-lightbox__next" type="button" aria-label="View next media">&#10095;</button>
       <div class="detail-lightbox__content"></div>
-      <div class="detail-lightbox__progress" id="detailLightboxProgress">1 / 1</div>
     </div>
     <script>
       (function () {
@@ -491,13 +477,7 @@ function buildDetailHtml(meta, project) {
         var prevBtn = lightbox.querySelector(".detail-lightbox__prev");
         var nextBtn = lightbox.querySelector(".detail-lightbox__next");
         var mediaItems = Array.prototype.slice.call(document.querySelectorAll(".detail-media"));
-        var progress = document.getElementById("detailLightboxProgress");
-        var totalCount = mediaItems.length || Number.parseInt(lightbox.dataset.mediaCount || "0", 10) || 0;
         var currentIndex = -1;
-        function updateProgress() {
-          if (!progress || !totalCount || currentIndex === -1) return;
-          progress.textContent = (currentIndex + 1) + " / " + totalCount;
-        }
 
         function openAt(index) {
           if (!mediaItems.length) return;
@@ -518,7 +498,6 @@ function buildDetailHtml(meta, project) {
           } else {
             content.innerHTML = '<img src="' + full + '" alt="' + alt + '">';
           }
-          updateProgress();
         }
 
         function closeLightbox() {
