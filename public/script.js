@@ -1565,8 +1565,6 @@ function findNextAvailableHeroUrl(excludeUrl = "") {
     if (item.classList.contains("marked-remove")) continue;
     const toggle = item.querySelector(".media-hero-toggle");
     const url = toggle?.dataset.mediaUrl;
-    const type = (toggle?.dataset.mediaType || "").toLowerCase();
-    if (type === "video") continue;
     if (url && url !== excludeUrl) {
       return url;
     }
@@ -2048,7 +2046,7 @@ function renderEditMediaList(project) {
     wrapper.innerHTML = `
       ${preview}
       <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
-      <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}" data-media-type="${media?.type || "image"}">
+      <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
         ${isHero ? "Cover Image" : "Set as Cover"}
       </button>
       <div class="media-focus-controls"${isHero ? "" : " hidden"} data-media-url="${safeUrl}">
@@ -2113,11 +2111,6 @@ function renderEditMediaList(project) {
     const heroToggle = wrapper.querySelector(".media-hero-toggle");
     heroToggle?.addEventListener("click", () => {
       if (!media.url) return;
-      const isVideo = (heroToggle.dataset.mediaType || media.type || "").toLowerCase() === "video";
-      if (isVideo) {
-        showAdminToast("Please select an image as the cover.", "error");
-        return;
-      }
       setHeroMediaSelection(media.url);
     });
 
