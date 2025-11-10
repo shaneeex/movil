@@ -9,6 +9,7 @@ import {
   applySpotlight,
   sanitizeIncomingMediaEntry,
   sanitizeRemovalEntry,
+  sanitizeMediaFocusUpdate,
 } from "../../lib/projects.js";
 import {
   normalizeCategory,
@@ -97,6 +98,10 @@ export default withErrorHandling(async function handler(req, res) {
       }
     }
 
+    if (Array.isArray(body?.mediaFocus) && body.mediaFocus.length) {
+      applyMediaFocusUpdates(project, body.mediaFocus);
+    }
+
     await saveProjects(projects);
     return sendJSON(res, 200, { ok: true, project, index });
   }
@@ -147,6 +152,34 @@ export default withErrorHandling(async function handler(req, res) {
     project.media = [...(project.media || []), ...files];
   }
 
+  if (fields.mediaFocus !== undefined) {
+    let focusEntries = [];
+    if (typeof fields.mediaFocus === "string" && fields.mediaFocus.trim()) {
+      focusEntries = safeJSONParse(fields.mediaFocus, []);
+      if (!Array.isArray(focusEntries)) focusEntries = [];
+    }
+    if (Array.isArray(focusEntries) && focusEntries.length) {
+      applyMediaFocusUpdates(project, focusEntries);
+    }
+  }
+
   await saveProjects(projects);
   return sendJSON(res, 200, { ok: true, project, index });
 });
+
+function applyMediaFocusUpdates(project, entries) {
+  if (!project || !Array.isArray(project.media)) return;
+  const sanitized = entries.map(sanitizeMediaFocusUpdate).filter(Boolean);
+  if (!sanitized.length) return;
+  const map = new Map();
+  sanitized.forEach(({ url, focus }) => {
+    map.set(url, focus);
+  });
+  project.media = project.media.map((media) => {
+    if (!media || typeof media.url !== "string") return media;
+    const mediaUrl = media.url.trim();
+    const focus = map.get(mediaUrl);
+    if (!focus) return media;
+    return { ...media, focus };
+  });
+}

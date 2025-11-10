@@ -50,6 +50,32 @@ function getMediaThumb(media) {
   return VIDEO_THUMB_FALLBACK;
 }
 
+function clampMediaFocusValue(value) {
+  if (!Number.isFinite(value)) return null;
+  if (value < 0) return 0;
+  if (value > 100) return 100;
+  return Math.round(value * 100) / 100;
+}
+
+function getMediaFocus(media) {
+  if (!media || typeof media !== "object") return null;
+  const focus = media.focus;
+  if (!focus || typeof focus !== "object") return null;
+  const x = clampMediaFocusValue(Number(focus.x));
+  const y = clampMediaFocusValue(Number(focus.y));
+  if (x === null && y === null) return null;
+  return {
+    x: x === null ? 50 : x,
+    y: y === null ? 50 : y,
+  };
+}
+
+function getMediaFocusStyle(media) {
+  const focus = getMediaFocus(media);
+  if (!focus) return "";
+  return `${focus.x}% ${focus.y}%`;
+}
+
 function slugifyShareTitle(title) {
   if (typeof title !== "string") return "movil-project";
   return title
@@ -858,21 +884,23 @@ function renderPublicProjectsPage(page = 1) {
       const detailPath = `/p/${shareId}`;
       const mediaCountText = formatMediaCount(mediaItems);
       const actionsShareMarkup = isFeatured ? "" : shareButtonDefault;
+      const focusStyle = getMediaFocusStyle(heroMedia);
+      const focusAttr = focusStyle ? ` style="object-position: ${focusStyle};"` : "";
 
     let mediaTag = "";
     if (featuredVideo) {
       mediaTag = `
-        <video src="${featuredVideo.url}" poster="${heroThumb}" muted playsinline loop preload="metadata" data-autoplay="1" aria-label="${altText}"></video>
+        <video src="${featuredVideo.url}" poster="${heroThumb}" muted playsinline loop preload="metadata" data-autoplay="1" aria-label="${altText}"${focusAttr}></video>
       `;
     } else if (heroMedia.type === "video") {
       mediaTag = `
         <div class="video-thumb">
-          <img src="${heroThumb}" alt="${altText}" loading="lazy">
+          <img src="${heroThumb}" alt="${altText}" loading="lazy"${focusAttr}>
           <span class="play-icon" aria-hidden="true">&#9658;</span>
         </div>
       `;
     } else {
-      mediaTag = `<img src="${heroThumb}" alt="${altText}" loading="lazy">`;
+      mediaTag = `<img src="${heroThumb}" alt="${altText}" loading="lazy"${focusAttr}>`;
     }
 
     const badgeHtml = isFeatured ? '<span class="project-card-badge">Spotlight</span>' : "";
@@ -1903,13 +1931,34 @@ function renderEditMediaList(project) {
     const wrapper = document.createElement("div");
     wrapper.className = "media-item";
     const thumb = getMediaThumb(media);
+    const focus = getMediaFocus(media);
+    const focusX = focus ? focus.x : 50;
+    const focusY = focus ? focus.y : 50;
+    const focusStyle = getMediaFocusStyle(media);
+    const focusAttr = focusStyle ? ` style="object-position: ${focusStyle};"` : "";
+    const safeUrl = escapeHtml(media.url || `media-${idx}`);
     const preview =
       media?.type === "video"
-        ? `<video src="${media.url}" poster="${thumb}" muted playsinline></video>`
-        : `<img src="${thumb}" alt="Media ${idx + 1}">`;
+        ? `<video class="media-preview" src="${media.url}" poster="${thumb}" muted playsinline${focusAttr}></video>`
+        : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy"${focusAttr}>`;
     wrapper.innerHTML = `
       ${preview}
       <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
+      <div class="media-focus-controls" data-media-url="${safeUrl}">
+        <div class="media-focus-row">
+          <label>Horizontal</label>
+          <input type="range" min="0" max="100" step="1" value="${focusX}" data-focus-axis="x" />
+          <span class="media-focus-value" data-focus-value="x">${Math.round(focusX)}%</span>
+        </div>
+        <div class="media-focus-row">
+          <label>Vertical</label>
+          <input type="range" min="0" max="100" step="1" value="${focusY}" data-focus-axis="y" />
+          <span class="media-focus-value" data-focus-value="y">${Math.round(focusY)}%</span>
+        </div>
+        <div class="media-focus-actions">
+          <button type="button" class="media-focus-reset">Center</button>
+        </div>
+      </div>
     `;
     const removeBtn = wrapper.querySelector(".media-remove");
     const mark = () => {
@@ -1934,6 +1983,45 @@ function renderEditMediaList(project) {
         mark();
       }
     });
+
+    const focusControls = wrapper.querySelector(".media-focus-controls");
+    const previewEl = wrapper.querySelector(".media-preview");
+    if (focusControls && previewEl) {
+      const updatePreviewFocus = () => {
+        const xInput = focusControls.querySelector('input[data-focus-axis="x"]');
+        const yInput = focusControls.querySelector('input[data-focus-axis="y"]');
+        const x = clampMediaFocusValue(Number(xInput?.value));
+        const y = clampMediaFocusValue(Number(yInput?.value));
+        const posX = x === null ? 50 : x;
+        const posY = y === null ? 50 : y;
+        previewEl.style.objectPosition = `${posX}% ${posY}%`;
+      };
+      focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
+        const axis = input.dataset.focusAxis;
+        const valueLabel = focusControls.querySelector(`[data-focus-value="${axis}"]`);
+        const syncLabel = () => {
+          const numeric = clampMediaFocusValue(Number(input.value));
+          const displayValue = numeric === null ? 0 : numeric;
+          if (valueLabel) {
+            valueLabel.textContent = `${Math.round(displayValue)}%`;
+          }
+          updatePreviewFocus();
+        };
+        input.addEventListener("input", syncLabel);
+        input.addEventListener("change", syncLabel);
+      });
+      focusControls.querySelector(".media-focus-reset")?.addEventListener("click", () => {
+        focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
+          input.value = "50";
+          const axis = input.dataset.focusAxis;
+          const label = focusControls.querySelector(`[data-focus-value="${axis}"]`);
+          if (label) {
+            label.textContent = "50%";
+          }
+        });
+        updatePreviewFocus();
+      });
+    }
     list.appendChild(wrapper);
   });
 }
@@ -2092,6 +2180,30 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
     removed: Array.isArray(removedMedia) ? removedMedia : [],
     newMedia: [],
   };
+  const removalUrls = new Set(
+    (Array.isArray(removedMedia) ? removedMedia : [])
+      .map((entry) => entry?.url)
+      .filter((url) => typeof url === "string" && url),
+  );
+  const focusEntries = [];
+  document.querySelectorAll("#editMediaList .media-focus-controls").forEach((control) => {
+    const url = control.dataset.mediaUrl;
+    if (!url || removalUrls.has(url)) return;
+    const xVal = clampMediaFocusValue(
+      Number(control.querySelector('input[data-focus-axis="x"]')?.value),
+    );
+    const yVal = clampMediaFocusValue(
+      Number(control.querySelector('input[data-focus-axis="y"]')?.value),
+    );
+    if (xVal === null && yVal === null) return;
+    const focus = {};
+    if (xVal !== null) focus.x = xVal;
+    if (yVal !== null) focus.y = yVal;
+    focusEntries.push({ url, focus });
+  });
+  if (focusEntries.length) {
+    payload.mediaFocus = focusEntries;
+  }
 
   try {
     if (newFiles.length) {

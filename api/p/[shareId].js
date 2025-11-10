@@ -309,12 +309,50 @@ function buildDetailHtml(meta, project) {
         position: absolute;
         top: 18px;
         right: 24px;
-        font-size: 2.4rem;
-        background: none;
-        border: none;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        font-size: 2.8rem;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.25);
         color: #fff;
         cursor: pointer;
         line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease, background 0.2s ease;
+      }
+      .detail-lightbox__close:hover {
+        background: rgba(0, 0, 0, 0.75);
+        transform: scale(1.05);
+      }
+      .detail-lightbox__nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-size: 2rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+      .detail-lightbox__nav:hover {
+        background: rgba(0, 0, 0, 0.78);
+        transform: translateY(-50%) scale(1.05);
+      }
+      .detail-lightbox__prev {
+        left: 24px;
+      }
+      .detail-lightbox__next {
+        right: 24px;
       }
       body.detail-lightbox--open {
         overflow: hidden;
@@ -327,6 +365,22 @@ function buildDetailHtml(meta, project) {
         .detail-share button {
           width: 100%;
           text-align: center;
+        }
+        .detail-lightbox__close {
+          width: 48px;
+          height: 48px;
+          font-size: 2.4rem;
+        }
+        .detail-lightbox__nav {
+          width: 44px;
+          height: 44px;
+          font-size: 1.6rem;
+        }
+        .detail-lightbox__prev {
+          left: 12px;
+        }
+        .detail-lightbox__next {
+          right: 12px;
         }
       }
     </style>
@@ -358,6 +412,8 @@ function buildDetailHtml(meta, project) {
     </main>
     <div class="detail-lightbox" id="detailLightbox" hidden>
       <button class="detail-lightbox__close" type="button" aria-label="Close media preview">&times;</button>
+      <button class="detail-lightbox__nav detail-lightbox__prev" type="button" aria-label="View previous media">&#10094;</button>
+      <button class="detail-lightbox__nav detail-lightbox__next" type="button" aria-label="View next media">&#10095;</button>
       <div class="detail-lightbox__content"></div>
     </div>
     <script>
@@ -395,36 +451,81 @@ function buildDetailHtml(meta, project) {
         if (!lightbox) return;
         var content = lightbox.querySelector(".detail-lightbox__content");
         var closeBtn = lightbox.querySelector(".detail-lightbox__close");
+        var prevBtn = lightbox.querySelector(".detail-lightbox__prev");
+        var nextBtn = lightbox.querySelector(".detail-lightbox__next");
+        var mediaItems = Array.prototype.slice.call(document.querySelectorAll(".detail-media"));
+        var currentIndex = -1;
+
+        function openAt(index) {
+          if (!mediaItems.length) return;
+          if (index < 0) index = mediaItems.length - 1;
+          if (index >= mediaItems.length) index = 0;
+          currentIndex = index;
+          var node = mediaItems[currentIndex];
+          if (!node) return;
+          var type = node.getAttribute("data-type");
+          var full = node.getAttribute("data-full");
+          var alt = node.getAttribute("data-alt") || "Project media full view";
+          if (!full) return;
+          document.body.classList.add("detail-lightbox--open");
+          lightbox.hidden = false;
+          if (type === "video") {
+            content.innerHTML =
+              '<video controls autoplay playsinline muted src="' + full + '"></video>';
+          } else {
+            content.innerHTML = '<img src="' + full + '" alt="' + alt + '">';
+          }
+        }
 
         function closeLightbox() {
           lightbox.hidden = true;
           content.innerHTML = "";
           document.body.classList.remove("detail-lightbox--open");
+          currentIndex = -1;
         }
 
-        document.querySelectorAll(".detail-media").forEach(function (node) {
+        mediaItems.forEach(function (node, idx) {
           node.addEventListener("click", function () {
-            var type = node.getAttribute("data-type");
-            var full = node.getAttribute("data-full");
-            if (!full) return;
-            document.body.classList.add("detail-lightbox--open");
-            lightbox.hidden = false;
-            if (type === "video") {
-              content.innerHTML =
-                '<video controls autoplay playsinline src="' + full + '"></video>';
-            } else {
-              content.innerHTML =
-                '<img src="' + full + '" alt="Project media full view">';
-            }
+            var attrIdx = Number.parseInt(node.getAttribute("data-index"), 10);
+            openAt(Number.isNaN(attrIdx) ? idx : attrIdx);
           });
         });
 
-        closeBtn.addEventListener("click", closeLightbox);
+        function showPrevious() {
+          if (currentIndex === -1) return;
+          openAt(currentIndex - 1);
+        }
+
+        function showNext() {
+          if (currentIndex === -1) return;
+          openAt(currentIndex + 1);
+        }
+
+        closeBtn?.addEventListener("click", closeLightbox);
+        prevBtn?.addEventListener("click", function (event) {
+          event.stopPropagation();
+          showPrevious();
+        });
+        nextBtn?.addEventListener("click", function (event) {
+          event.stopPropagation();
+          showNext();
+        });
+
         lightbox.addEventListener("click", function (event) {
           if (event.target === lightbox) closeLightbox();
         });
+
         document.addEventListener("keydown", function (event) {
-          if (event.key === "Escape" && !lightbox.hidden) closeLightbox();
+          if (lightbox.hidden) return;
+          if (event.key === "Escape") {
+            closeLightbox();
+          } else if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            showPrevious();
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            showNext();
+          }
         });
       })();
     </script>
@@ -474,11 +575,12 @@ function renderHero(project, meta) {
   if (!media) {
     return `<img src="${escapeHtml(meta.imageUrl)}" alt="${escapeHtml(meta.title)}">`;
   }
+  const focusAttr = buildFocusStyleAttr(media);
   if ((media.type || "").toLowerCase() === "video") {
     const poster = escapeHtml(media.thumbnail || media.url || meta.imageUrl);
-    return `<video controls playsinline poster="${poster}" src="${escapeHtml(media.url)}"></video>`;
+    return `<video controls playsinline muted poster="${poster}" src="${escapeHtml(media.url)}"${focusAttr}></video>`;
   }
-  return `<img src="${escapeHtml(media.url || meta.imageUrl)}" alt="${escapeHtml(meta.title)}">`;
+  return `<img src="${escapeHtml(media.url || meta.imageUrl)}" alt="${escapeHtml(meta.title)}"${focusAttr}>`;
 }
 
 function renderDescription(description = "") {
@@ -508,15 +610,36 @@ function renderMediaFigure(media, idx, title) {
     const poster = escapeHtml(media.thumbnail || media.url);
     return `<figure class="detail-media detail-media--video" data-type="video" data-full="${escapeHtml(
       media.url
-    )}">
-      <video controls playsinline poster="${poster}" src="${escapeHtml(media.url)}"></video>
+    )}" data-index="${idx}" data-alt="${alt}">
+      <video controls playsinline muted poster="${poster}" src="${escapeHtml(media.url)}"${buildFocusStyleAttr(
+        media
+      )}></video>
     </figure>`;
   }
   return `<figure class="detail-media detail-media--image" data-type="image" data-full="${escapeHtml(
     media.url
-  )}">
-    <img src="${escapeHtml(media.url)}" loading="lazy" alt="${alt}">
+  )}" data-index="${idx}" data-alt="${alt}">
+    <img src="${escapeHtml(media.url)}" loading="lazy" alt="${alt}"${buildFocusStyleAttr(media)}>
   </figure>`;
+}
+
+function clampFocusValue(value) {
+  if (!Number.isFinite(value)) return null;
+  if (value < 0) return 0;
+  if (value > 100) return 100;
+  return Math.round(value * 100) / 100;
+}
+
+function buildFocusStyleAttr(media) {
+  if (!media || typeof media !== "object") return "";
+  const focus = media.focus;
+  if (!focus || typeof focus !== "object") return "";
+  const x = clampFocusValue(Number(focus.x));
+  const y = clampFocusValue(Number(focus.y));
+  if (x === null && y === null) return "";
+  const posX = x === null ? 50 : x;
+  const posY = y === null ? 50 : y;
+  return ` style="object-position: ${posX}% ${posY}%;"`;
 }
 
 function selectPrimaryMedia(project) {
