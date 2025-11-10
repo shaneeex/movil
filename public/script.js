@@ -849,18 +849,15 @@ function renderPublicProjectsPage(page = 1) {
         ? `<p class="project-card-client">Client: ${escapeHtml(clientName)}</p>`
         : "";
       const snippetHtml = snippetText ? `<p class="project-card-desc">${escapeHtml(snippetText)}</p>` : "";
-      const shareButtonHtml = `
-        <button type="button" class="project-card-share" onclick="shareProject(event, ${displayIndex})" aria-label="Share ${titleText}">
-          <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-          <span>Share</span>
-        </button>
-      `;
+      const shareButtonDefault = buildShareButton(displayIndex);
+      const inlineShareButton = isFeatured ? buildShareButton(displayIndex, "project-card-share--inline") : "";
       const altText = escapeHtml(`${p.title || "Project"} showcase`);
       const heroMediaIndex = mediaItems.indexOf(heroMedia);
       const safeMediaIndex = heroMediaIndex >= 0 ? heroMediaIndex : 0;
       const shareId = buildProjectShareId(p, sourceIndex);
       const detailPath = `/p/${shareId}`;
       const mediaCountText = formatMediaCount(mediaItems);
+      const actionsShareMarkup = isFeatured ? "" : shareButtonDefault;
 
     let mediaTag = "";
     if (featuredVideo) {
@@ -889,6 +886,7 @@ function renderPublicProjectsPage(page = 1) {
             ${mediaTag}
           </div>
           <div class="project-card-meta">
+            ${inlineShareButton}
             ${badgeHtml}
             <span class="project-card-category">${categoryText}</span>
             <h3>${titleText}</h3>
@@ -898,7 +896,7 @@ function renderPublicProjectsPage(page = 1) {
         </a>
         <div class="project-card-actions">
           <span class="project-card-count">${mediaCountText}</span>
-          ${shareButtonHtml}
+          ${actionsShareMarkup}
         </div>
       </article>
     `
@@ -1110,6 +1108,20 @@ function formatMediaCount(mediaItems) {
   if (totals.images) parts.push(`${totals.images} photo${totals.images > 1 ? "s" : ""}`);
   if (totals.videos) parts.push(`${totals.videos} video${totals.videos > 1 ? "s" : ""}`);
   return parts.join(" • ");
+}
+
+function buildShareButton(displayIndex, extraClass = "") {
+  const classes = ["project-card-share"];
+  if (extraClass) classes.push(extraClass);
+  return `
+    <button type="button"
+      class="${classes.join(" ")}"
+      onclick="shareProject(event, ${displayIndex})"
+      aria-label="Share project ${displayIndex}">
+      <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+      <span>Share</span>
+    </button>
+  `;
 }
 
 function changeProjectsPage(page) {

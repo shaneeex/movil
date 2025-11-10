@@ -673,7 +673,7 @@ header .container {
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 0 20px 20px;
   margin-top: 6px;
 }
@@ -682,6 +682,13 @@ header .container {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(245, 246, 250, 0.6);
+}
+.project-card-actions .project-card-share {
+  margin-left: auto;
+}
+.project-card-share--inline {
+  align-self: flex-start;
+  margin-bottom: 12px;
 }
 .project-card-share {
   display: inline-flex;
