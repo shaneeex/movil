@@ -1,4 +1,4 @@
-/* ===== BASE STYLE ===== */
+﻿/* ===== BASE STYLE ===== */
 :root {
   --primary: #364cb1;         /* Indigo highlight */
   --accent: #08af8a;          /* Vibrant teal */
@@ -678,7 +678,7 @@ header .container {
   gap: 10px;
   align-items: center;
   justify-content: flex-end;
-  padding: 0 20px 20px;
+  padding: 0 0 0;
   margin-top: 6px;
 }
 .project-card-count {
