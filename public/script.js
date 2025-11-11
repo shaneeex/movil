@@ -1596,6 +1596,7 @@ function refreshHeroIndicators() {
   if (heroField) heroField.value = currentHeroMediaUrl || "";
   document.querySelectorAll("#editMediaList .media-item").forEach((item) => {
     const toggle = item.querySelector(".media-hero-toggle");
+    const focusPanel = item.querySelector(".media-focus-panel");
     const focusControls = item.querySelector(".media-focus-controls");
     const mediaUrl = toggle?.dataset.mediaUrl || "";
     const isHero = mediaUrl && mediaUrl === currentHeroMediaUrl;
@@ -1604,13 +1605,14 @@ function refreshHeroIndicators() {
       toggle.textContent = isHero ? "Cover Image" : "Set as Cover";
       toggle.disabled = Boolean(isHero);
     }
-    if (focusControls) {
+    if (focusPanel) {
       if (isHero) {
-        focusControls.removeAttribute("hidden");
+        focusPanel.removeAttribute("hidden");
       } else {
-        focusControls.setAttribute("hidden", "hidden");
+        focusPanel.setAttribute("hidden", "hidden");
       }
     }
+    if (focusControls && isHero) focusControls.dataset.mediaUrl = mediaUrl;
   });
 }
 
@@ -2147,30 +2149,40 @@ function renderEditMediaList(project) {
       <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
         ${isHero ? "Cover Image" : "Set as Cover"}
       </button>
-      <div class="media-focus-controls"${isHero ? "" : " hidden"} data-media-url="${safeUrl}">
-        <div class="media-focus-row">
-          <label>Horizontal</label>
-          <input type="range" min="0" max="100" step="1" value="${focusX}" data-focus-axis="x" />
-          <span class="media-focus-value" data-focus-value="x">${Math.round(focusX)}%</span>
+      <div class="media-focus-panel"${isHero ? "" : " hidden"}>
+        <div class="media-focus-panel__header">
+          <span>Cover framing</span>
+          <button type="button" class="media-focus-reset" aria-label="Reset focus">Reset</button>
         </div>
-        <div class="media-focus-row">
-          <label>Vertical</label>
-          <input type="range" min="0" max="100" step="1" value="${focusY}" data-focus-axis="y" />
-          <span class="media-focus-value" data-focus-value="y">${Math.round(focusY)}%</span>
-        </div>
-        <div class="media-focus-row">
-          <label>Zoom</label>
-          <input type="range" min="100" max="200" step="1" value="${Math.round(
-            focusZoom * 100,
-          )}" data-focus-axis="zoom" />
-          <span class="media-focus-value" data-focus-value="zoom">${Math.round(
-            focusZoom * 100,
-          )}%</span>
-        </div>
-        <div class="media-focus-actions">
-          <button type="button" class="media-focus-reset">Center</button>
+        <div class="media-focus-controls" data-media-url="${safeUrl}">
+          <div class="media-focus-row">
+            <div class="media-focus-labels">
+              <label>Horizontal</label>
+              <span class="media-focus-value" data-focus-value="x">${Math.round(focusX)}%</span>
+            </div>
+            <input type="range" min="0" max="100" step="1" value="${focusX}" data-focus-axis="x" />
+          </div>
+          <div class="media-focus-row">
+            <div class="media-focus-labels">
+              <label>Vertical</label>
+              <span class="media-focus-value" data-focus-value="y">${Math.round(focusY)}%</span>
+            </div>
+            <input type="range" min="0" max="100" step="1" value="${focusY}" data-focus-axis="y" />
+          </div>
+          <div class="media-focus-row">
+            <div class="media-focus-labels">
+              <label>Zoom</label>
+              <span class="media-focus-value" data-focus-value="zoom">${Math.round(
+                focusZoom * 100,
+              )}%</span>
+            </div>
+            <input type="range" min="100" max="200" step="1" value="${Math.round(
+              focusZoom * 100,
+            )}" data-focus-axis="zoom" />
+          </div>
         </div>
       </div>
+      ${isHero ? "" : '<p class="media-focus-hint">Select this media as the cover to unlock positioning controls.</p>'}
     `;
     if (isHero) {
       wrapper.classList.add("media-item--hero");
@@ -2212,6 +2224,7 @@ function renderEditMediaList(project) {
       setHeroMediaSelection(media.url);
     });
 
+    const focusPanel = wrapper.querySelector(".media-focus-panel");
     const focusControls = wrapper.querySelector(".media-focus-controls");
     const previewEl = wrapper.querySelector(".media-preview");
     if (focusControls && previewEl) {
@@ -2252,7 +2265,7 @@ function renderEditMediaList(project) {
         input.addEventListener("input", syncLabel);
         input.addEventListener("change", syncLabel);
       });
-      focusControls.querySelector(".media-focus-reset")?.addEventListener("click", () => {
+      focusPanel?.querySelector(".media-focus-reset")?.addEventListener("click", () => {
         focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
           if (input.dataset.focusAxis === "zoom") {
             input.value = "100";
