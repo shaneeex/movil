@@ -3,7 +3,7 @@ import { getProjects, getSharePageMeta } from "../../lib/projects.js";
 import { buildShareId, buildShareKey, slugify } from "../../lib/utils.js";
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const HERO_IMAGE_TRANSFORM = "a_auto,f_auto,q_auto,c_fill,g_auto,w_1280,h_720";
-const DETAIL_IMAGE_TRANSFORM = "a_auto,f_auto,q_auto,c_fill,g_auto,w_960,h_720";
+const DETAIL_IMAGE_TRANSFORM = "f_auto,q_auto,c_fill,g_auto,w_960,h_720";
 
 export default withErrorHandling(async function handler(req, res) {
   const method = (req.method || "GET").toUpperCase();

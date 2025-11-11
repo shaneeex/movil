@@ -7,10 +7,10 @@ const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
 const prefetchedAssets = new Set();
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const MEDIA_TRANSFORMS = {
-  grid: "a_auto,f_auto,q_auto,c_fill,g_auto,w_720,h_520",
+  grid: "f_auto,q_auto,c_fill,g_auto,w_720,h_520",
   hero: "a_auto,f_auto,q_auto,c_fill,g_auto,w_1280,h_720",
-  detail: "a_auto,f_auto,q_auto,c_fill,g_auto,w_960,h_720",
-  thumb: "a_auto,f_auto,q_auto,c_fill,g_auto,w_480,h_360",
+  detail: "f_auto,q_auto,c_fill,g_auto,w_960,h_720",
+  thumb: "f_auto,q_auto,c_fill,g_auto,w_480,h_360",
 };
 const scheduleIdle =
   typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
