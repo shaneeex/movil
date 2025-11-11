@@ -528,13 +528,14 @@
 
     .media-focus-overlay {
       position: absolute;
-      inset: 0;
+      inset: 6px;
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 10px;
+      padding: 8px;
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.25));
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.45));
     }
 
     .media-focus-overlay.is-hidden {
@@ -552,8 +553,8 @@
 
     .media-focus-handle {
       position: absolute;
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: #fff;
       border: 2px solid rgba(8, 175, 138, 0.9);
@@ -570,6 +571,11 @@
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.78);
       text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    .media-preview-wrapper {
+      overflow: hidden;
+      border-radius: 12px;
     }
 
     .media-focus-instruction {
