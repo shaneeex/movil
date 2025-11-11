@@ -497,12 +497,12 @@
 
     .media-item {
       position: relative;
-      border-radius: 12px;
+      border-radius: 16px;
       overflow: hidden;
       background: rgba(240, 241, 246, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
-      padding: 10px 10px 16px;
+      padding: 16px 12px 18px;
     }
 
     .media-item.marked-remove {
@@ -526,19 +526,20 @@
       border-radius: 10px;
       overflow: hidden;
       margin: 4px 0 12px;
-      min-height: 120px;
+      min-height: 132px;
+      background: rgba(0, 0, 0, 0.4);
     }
 
     .media-focus-overlay {
       position: absolute;
-      inset: 4px;
-      border-radius: 8px;
+      inset: 8px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       padding: 8px;
       pointer-events: none;
-      background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.45));
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.5));
     }
 
     .media-focus-overlay.is-hidden {
@@ -556,8 +557,8 @@
 
     .media-focus-handle {
       position: absolute;
-      width: 13px;
-      height: 13px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #fff;
       border: 2px solid rgba(8, 175, 138, 0.9);
@@ -586,14 +587,14 @@
 
     .media-remove {
       position: absolute;
-      top: 4px;
-      right: 4px;
+      top: -10px;
+      right: -10px;
       background: rgba(230, 57, 70, 0.9);
       color: #fff;
       border: none;
       border-radius: 999px;
-      width: 30px;
-      height: 30px;
+      width: 28px;
+      height: 28px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
