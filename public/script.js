@@ -140,6 +140,53 @@ function optimizeMediaUrl(url, variant = "grid") {
   }
 }
 
+function setupFocusOverlay(previewWrapper, overlay, focusControls, updatePreviewFocus) {
+  if (!previewWrapper || !overlay || !focusControls || overlay.dataset.overlayBound) return;
+  const xInput = focusControls.querySelector('input[data-focus-axis="x"]');
+  const yInput = focusControls.querySelector('input[data-focus-axis="y"]');
+  if (!xInput || !yInput) return;
+  overlay.dataset.overlayBound = "1";
+
+  let activePointerId = null;
+
+  const clampPercent = (value) => Math.min(100, Math.max(0, value));
+
+  const updateFromEvent = (event) => {
+    const rect = previewWrapper.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const percentX = clampPercent(((event.clientX - rect.left) / rect.width) * 100);
+    const percentY = clampPercent(((event.clientY - rect.top) / rect.height) * 100);
+    xInput.value = percentX.toFixed(2);
+    yInput.value = percentY.toFixed(2);
+    updatePreviewFocus();
+  };
+
+  const stopDrag = () => {
+    overlay.classList.remove("is-dragging");
+    window.removeEventListener("pointermove", handleMove);
+    window.removeEventListener("pointerup", stopDrag);
+    activePointerId = null;
+  };
+
+  const handleMove = (event) => {
+    if (activePointerId !== null && event.pointerId !== activePointerId) return;
+    updateFromEvent(event);
+  };
+
+  const startDrag = (event) => {
+    if (!overlay.classList.contains("is-active")) return;
+    event.preventDefault();
+    activePointerId = event.pointerId;
+    overlay.classList.add("is-dragging");
+    updateFromEvent(event);
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", stopDrag, { once: true });
+  };
+
+  overlay.addEventListener("pointerdown", startDrag);
+  previewWrapper.addEventListener("pointerdown", startDrag);
+}
+
 function findHeroMediaCandidate(mediaItems = [], heroUrl = "") {
   if (!Array.isArray(mediaItems) || !mediaItems.length) return null;
   if (heroUrl) {
@@ -1598,6 +1645,7 @@ function refreshHeroIndicators() {
     const toggle = item.querySelector(".media-hero-toggle");
     const focusPanel = item.querySelector(".media-focus-panel");
     const focusControls = item.querySelector(".media-focus-controls");
+    const overlay = item.querySelector(".media-focus-overlay");
     const mediaUrl = toggle?.dataset.mediaUrl || "";
     const isHero = mediaUrl && mediaUrl === currentHeroMediaUrl;
     item.classList.toggle("media-item--hero", Boolean(isHero));
@@ -1613,6 +1661,11 @@ function refreshHeroIndicators() {
       }
     }
     if (focusControls && isHero) focusControls.dataset.mediaUrl = mediaUrl;
+    if (overlay) {
+      overlay.classList.toggle("is-hidden", !isHero);
+      overlay.classList.toggle("is-active", isHero);
+    }
+    item.dispatchEvent(new Event("refreshFocusPreview"));
   });
 }
 
@@ -2143,8 +2196,21 @@ function renderEditMediaList(project) {
         : `<img class="media-preview" src="${thumb}" alt="Media ${idx + 1}" loading="lazy" decoding="async"${buildMediaFocusAttr(
             media,
           )}>`;
+    const previewMarkup = `
+      <div class="media-preview-wrapper">
+        ${preview}
+        <div class="media-focus-overlay${isHero ? " is-active" : " is-hidden"}" data-media-url="${safeUrl}">
+          <div class="media-focus-handle" role="presentation"></div>
+          <div class="media-focus-readout">
+            <span>H: <strong data-focus-overlay="x">${Math.round(focusX)}%</strong></span>
+            <span>V: <strong data-focus-overlay="y">${Math.round(focusY)}%</strong></span>
+          </div>
+          <span class="media-focus-instruction">Drag to reposition cover</span>
+        </div>
+      </div>
+    `;
     wrapper.innerHTML = `
-      ${preview}
+      ${previewMarkup}
       <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
       <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
         ${isHero ? "Cover Image" : "Set as Cover"}
@@ -2155,20 +2221,8 @@ function renderEditMediaList(project) {
           <button type="button" class="media-focus-reset" aria-label="Reset focus">Reset</button>
         </div>
         <div class="media-focus-controls" data-media-url="${safeUrl}">
-          <div class="media-focus-row">
-            <div class="media-focus-labels">
-              <label>Horizontal</label>
-              <span class="media-focus-value" data-focus-value="x">${Math.round(focusX)}%</span>
-            </div>
-            <input type="range" min="0" max="100" step="1" value="${focusX}" data-focus-axis="x" />
-          </div>
-          <div class="media-focus-row">
-            <div class="media-focus-labels">
-              <label>Vertical</label>
-              <span class="media-focus-value" data-focus-value="y">${Math.round(focusY)}%</span>
-            </div>
-            <input type="range" min="0" max="100" step="1" value="${focusY}" data-focus-axis="y" />
-          </div>
+          <input type="hidden" data-focus-axis="x" value="${focusX}" />
+          <input type="hidden" data-focus-axis="y" value="${focusY}" />
           <div class="media-focus-row">
             <div class="media-focus-labels">
               <label>Zoom</label>
@@ -2227,6 +2281,8 @@ function renderEditMediaList(project) {
     const focusPanel = wrapper.querySelector(".media-focus-panel");
     const focusControls = wrapper.querySelector(".media-focus-controls");
     const previewEl = wrapper.querySelector(".media-preview");
+    const previewWrapper = wrapper.querySelector(".media-preview-wrapper");
+    const overlay = wrapper.querySelector(".media-focus-overlay");
     if (focusControls && previewEl) {
       const updatePreviewFocus = () => {
         const xInput = focusControls.querySelector('input[data-focus-axis="x"]');
@@ -2243,6 +2299,14 @@ function renderEditMediaList(project) {
         previewEl.style.setProperty("--media-focus-x", `${posX}%`);
         previewEl.style.setProperty("--media-focus-y", `${posY}%`);
         previewEl.style.setProperty("--media-zoom", zoom === null ? 1 : zoom);
+        const overlayHandle = overlay?.querySelector(".media-focus-handle");
+        const overlayValueX = overlay?.querySelector('[data-focus-overlay="x"]');
+        const overlayValueY = overlay?.querySelector('[data-focus-overlay="y"]');
+        if (overlayHandle) {
+          overlayHandle.style.transform = `translate(${posX}%, ${posY}%)`;
+        }
+        if (overlayValueX) overlayValueX.textContent = `${Math.round(posX)}%`;
+        if (overlayValueY) overlayValueY.textContent = `${Math.round(posY)}%`;
       };
       focusControls.querySelectorAll('input[data-focus-axis]').forEach((input) => {
         const axis = input.dataset.focusAxis;
@@ -2281,6 +2345,8 @@ function renderEditMediaList(project) {
         updatePreviewFocus();
       });
       updatePreviewFocus();
+      setupFocusOverlay(previewWrapper, overlay, focusControls, updatePreviewFocus);
+      wrapper.addEventListener("refreshFocusPreview", () => updatePreviewFocus());
     }
     list.appendChild(wrapper);
   });
