@@ -138,10 +138,14 @@ function buildDetailHtml(meta, project) {
     <meta name="twitter:title" content="${pageTitle}" />
     <meta name="twitter:description" content="${escapeHtml(meta.description)}" />
     <meta name="twitter:image" content="${escapeHtml(meta.imageUrl)}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet" />
     <style>
       :root {
         color-scheme: dark;
         font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --heading-font: "Space Grotesk", "Poppins", sans-serif;
         --detail-bg: radial-gradient(circle at top, #040614, #02030a 70%);
         --detail-card: rgba(15, 17, 29, 0.92);
         --detail-border: rgba(255, 255, 255, 0.09);
@@ -210,10 +214,25 @@ function buildDetailHtml(meta, project) {
       .project-detail__info {
         display: grid;
         gap: 24px;
-        background: var(--detail-card);
-        border-radius: 26px;
-        border: 1px solid var(--detail-border);
-        padding: clamp(24px, 4vw, 36px);
+        background: rgba(12, 13, 24, 0.75);
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: clamp(24px, 4vw, 40px);
+        box-shadow: 0 35px 65px rgba(5, 6, 12, 0.55);
+        backdrop-filter: blur(18px) saturate(140%);
+        position: relative;
+        overflow: hidden;
+      }
+      .project-detail__info::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, rgba(8, 175, 138, 0.18), transparent 60%);
+        pointer-events: none;
+      }
+      .project-detail__info > * {
+        position: relative;
+        z-index: 1;
       }
       .project-detail__info h1 {
         margin: 0;
@@ -255,6 +274,8 @@ function buildDetailHtml(meta, project) {
         gap: 12px;
       }
       .detail-share button {
+        position: relative;
+        overflow: hidden;
         padding: 12px 22px;
         border-radius: 999px;
         border: 1px solid rgba(var(--accent-rgb), 0.45);
@@ -263,6 +284,22 @@ function buildDetailHtml(meta, project) {
         letter-spacing: 0.2em;
         text-transform: uppercase;
         cursor: pointer;
+        transition: background 0.3s ease, transform 0.3s ease;
+      }
+      .detail-share button::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent 55%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .detail-share button:hover {
+        transform: translateY(-2px);
+        background: rgba(var(--accent-rgb), 0.3);
+      }
+      .detail-share button:hover::after {
+        opacity: 1;
       }
       .project-detail__gallery {
         display: grid;
@@ -271,12 +308,24 @@ function buildDetailHtml(meta, project) {
       }
       .detail-media {
         border-radius: 22px;
-        border: 1px solid var(--detail-border);
+        border: 1px solid rgba(255, 255, 255, 0.08);
         overflow: hidden;
         background: rgba(0, 0, 0, 0.5);
         aspect-ratio: 4 / 3;
         cursor: zoom-in;
         position: relative;
+        box-shadow: 0 22px 45px rgba(0, 0, 0, 0.55);
+      }
+      .detail-media::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.4));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      .detail-media:hover::after {
+        opacity: 1;
       }
       .detail-media img,
       .detail-media video {

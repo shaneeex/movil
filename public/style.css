@@ -24,6 +24,7 @@
   --page-background: radial-gradient(circle at 20% 20%, #161927, #08080f 70%);
   --skeleton-base: rgba(255, 255, 255, 0.06);
   --skeleton-glow: rgba(255, 255, 255, 0.18);
+  --heading-font: "Space Grotesk", "Poppins", system-ui, sans-serif;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -64,6 +65,16 @@ body {
   line-height: 1.65;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--heading-font);
+  letter-spacing: 0.08em;
 }
 
 body.modal-open {
@@ -1416,6 +1427,8 @@ header .container {
   align-items: center;
   justify-content: center;
   gap: 0.6rem;
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(135deg, #0069c5, #0092b7, #00a2a1, #08af8a);
   color: #fff;
   padding: 14px 32px;
@@ -1428,9 +1441,25 @@ header .container {
   transition: var(--transition);
   box-shadow: 0 18px 35px rgba(var(--accent-alt-rgb), 0.35);
 }
+.btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
 .btn:hover {
   transform: translateY(-4px) scale(1.01);
   box-shadow: 0 24px 45px rgba(var(--accent-rgb), 0.45);
+}
+.btn:hover::after {
+  opacity: 1;
+  transform: scale(1.15);
+}
+.btn:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.8);
+  outline-offset: 4px;
 }
 
 
