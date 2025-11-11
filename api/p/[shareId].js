@@ -95,12 +95,12 @@ export default withErrorHandling(async function handler(req, res) {
 function buildDetailHtml(meta, project) {
   const heroMarkup = renderHero(project, meta);
   const descriptionMarkup = renderDescription(project.description);
-  const client = project.client
-    ? `<p class="detail-client">Client: ${escapeHtml(project.client)}</p>`
-    : "";
-  const category = project.category
-    ? `<span class="detail-category">${escapeHtml(project.category)}</span>`
-    : "";
+  const clientName = project.client ? escapeHtml(project.client) : "";
+  const client = clientName ? `<p class="detail-client">Client: ${clientName}</p>` : "";
+  const categoryLabel = project.category ? escapeHtml(project.category) : "";
+  const category = categoryLabel ? `<span class="detail-category">${categoryLabel}</span>` : "";
+  const mediaCount = Array.isArray(project.media) ? project.media.length : 0;
+  const mediaLabel = mediaCount === 1 ? "1 Asset" : `${mediaCount} Assets`;
   const tags = Array.isArray(project.tags) && project.tags.length
     ? `<ul class="detail-tags">${project.tags
         .slice(0, 8)
@@ -192,10 +192,69 @@ function buildDetailHtml(meta, project) {
         font-size: 0.75rem;
       }
       .detail-hero {
+        position: relative;
         border-radius: 26px;
         border: 1px solid var(--detail-border);
         overflow: hidden;
         box-shadow: 0 32px 60px rgba(3, 3, 10, 0.45);
+        isolation: isolate;
+      }
+      .detail-hero__media {
+        position: relative;
+      }
+      .detail-hero__media::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: inherit;
+        background: linear-gradient(180deg, transparent 20%, rgba(1, 2, 6, 0.82));
+        pointer-events: none;
+      }
+      .detail-hero__overlay {
+        position: absolute;
+        inset: auto clamp(16px, 4vw, 48px) clamp(18px, 3vw, 46px);
+        background: rgba(5, 6, 12, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: clamp(18px, 4vw, 32px);
+        display: grid;
+        gap: 12px;
+        text-align: left;
+        box-shadow: 0 24px 55px rgba(3, 3, 10, 0.4);
+        max-width: min(520px, 70vw);
+      }
+      .detail-hero__overlay h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 3rem);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .detail-hero__badge {
+        align-self: flex-start;
+        padding: 6px 16px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 0.7rem;
+      }
+      .detail-hero__client {
+        margin: 0;
+        color: rgba(245, 246, 250, 0.85);
+        letter-spacing: 0.06em;
+      }
+      .detail-hero__stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .detail-hero__stats span {
+        padding: 6px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
       }
       .detail-hero img,
       .detail-hero video {
@@ -208,17 +267,43 @@ function buildDetailHtml(meta, project) {
         transform: scale(var(--media-zoom, 1));
       }
       .project-detail__info {
-        display: grid;
-        gap: 24px;
-        background: var(--detail-card);
-        border-radius: 26px;
-        border: 1px solid var(--detail-border);
-        padding: clamp(24px, 4vw, 36px);
+        margin-top: clamp(32px, 8vw, 54px);
       }
-      .project-detail__info h1 {
+      .detail-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: clamp(18px, 4vw, 32px);
+      }
+      .detail-info-card {
+        background: var(--detail-card);
+        border-radius: 24px;
+        border: 1px solid var(--detail-border);
+        padding: clamp(20px, 4vw, 32px);
+        display: grid;
+        gap: 16px;
+      }
+      .detail-info-card--meta {
+        background: linear-gradient(145deg, rgba(24, 25, 40, 0.92), rgba(10, 10, 16, 0.92));
+      }
+      .detail-info-label {
         margin: 0;
-        font-size: clamp(2.2rem, 4vw, 3rem);
-        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 0.8rem;
+        color: rgba(245, 246, 250, 0.72);
+      }
+      .detail-info-chipset {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .detail-info-chip {
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.75rem;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
       }
       .detail-description p {
@@ -371,6 +456,13 @@ function buildDetailHtml(meta, project) {
         .detail-hero video {
           max-height: 420px;
         }
+        .detail-hero__overlay {
+          position: static;
+          margin: clamp(18px, 5vw, 28px);
+        }
+        .detail-hero__media::after {
+          background: linear-gradient(180deg, transparent 40%, rgba(1, 2, 6, 0.92));
+        }
         .detail-share button {
           width: 100%;
           text-align: center;
@@ -404,15 +496,36 @@ function buildDetailHtml(meta, project) {
         ${category}
       </div>
       <div class="detail-hero" aria-label="${pageTitle}">
-        ${heroMarkup}
+        <div class="detail-hero__media">
+          ${heroMarkup}
+        </div>
+        <div class="detail-hero__overlay">
+          ${categoryLabel ? `<span class="detail-hero__badge">${categoryLabel}</span>` : ""}
+          <h1>${pageTitle}</h1>
+          ${clientName ? `<p class="detail-hero__client">Client: ${clientName}</p>` : ""}
+          <div class="detail-hero__stats">
+            <span>${mediaLabel}</span>
+            ${categoryLabel ? `<span>${categoryLabel}</span>` : ""}
+          </div>
+        </div>
       </div>
       <section class="project-detail__info">
-        <h1>${pageTitle}</h1>
-        ${client}
-        ${descriptionMarkup}
-        ${tags}
-        <div class="detail-share">
-          <button id="detailShareBtn">Share Project</button>
+        <div class="detail-info-grid">
+          <div class="detail-info-card">
+            ${descriptionMarkup || '<p class="detail-empty">Project details will be updated soon.</p>'}
+            ${tags}
+          </div>
+          <div class="detail-info-card detail-info-card--meta">
+            <p class="detail-info-label">Project Insight</p>
+            <div class="detail-info-chipset">
+              <span class="detail-info-chip">${mediaLabel}</span>
+              ${clientName ? `<span class="detail-info-chip">${clientName}</span>` : ""}
+              ${categoryLabel ? `<span class="detail-info-chip">${categoryLabel}</span>` : ""}
+            </div>
+            <div class="detail-share">
+              <button id="detailShareBtn">Share Project</button>
+            </div>
+          </div>
         </div>
       </section>
       <section class="project-detail__gallery">
