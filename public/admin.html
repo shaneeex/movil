@@ -933,6 +933,7 @@
         <option value="draft">Draft</option>
       </select>
       <input type="text" name="tags" id="uploadTags" placeholder="Tags (comma separated)" aria-label="Tags" />
+      <input type="number" name="order" id="uploadOrder" placeholder="Display order (optional)" aria-label="Display order" />
       <input type="file" name="media" multiple accept="image/*,video/*" required />
       <button type="submit">Upload Project</button>
       <div class="upload-progress" id="uploadProgress">
@@ -978,6 +979,7 @@
         <option value="draft">Draft</option>
       </select>
       <input type="text" id="editTags" placeholder="Tags (comma separated)" aria-label="Tags" />
+      <input type="number" id="editOrder" placeholder="Display order (optional)" aria-label="Display order" />
       <input type="hidden" id="editHeroMedia" />
       <div id="editMediaList" class="media-list"></div>
       <input type="file" id="editNewMedia" multiple accept="image/*,video/*" />

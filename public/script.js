@@ -105,6 +105,14 @@ function clampMediaZoomValue(value) {
   return Math.round(value * 1000) / 1000;
 }
 
+function parseOrderInputValue(value) {
+  if (value === null || value === undefined) return null;
+  const raw = typeof value === "string" ? value.trim() : value;
+  if (raw === "" || raw === null) return null;
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 function buildMediaFocusAttr(media) {
   const focus = getMediaFocus(media);
   if (!focus) return "";
@@ -484,18 +492,38 @@ function normalizeCategory(value) {
     .join(" ");
 }
 
+function getProjectOrderValue(project) {
+  return Number.isFinite(project?.order) ? project.order : Number.POSITIVE_INFINITY;
+}
+
+function getProjectOriginalIndex(project, fallbackIndex = 0) {
+  if (Number.isFinite(project?.__idx)) return project.__idx;
+  return fallbackIndex;
+}
+
+function compareProjectsByOrder(a, b, fallbackA = 0, fallbackB = 0) {
+  const orderDiff = getProjectOrderValue(a) - getProjectOrderValue(b);
+  if (orderDiff !== 0) return orderDiff;
+  return getProjectOriginalIndex(a, fallbackA) - getProjectOriginalIndex(b, fallbackB);
+}
+
 function sortProjectsBySpotlight(projects = []) {
   if (!Array.isArray(projects)) return [];
+  const annotated = projects.map((proj, idx) => ({ proj, fallback: idx }));
   const spotlight = [];
   const others = [];
-  projects.forEach((proj) => {
-    if (proj?.spotlight) {
-      spotlight.push(proj);
+  annotated.forEach((entry) => {
+    if (entry.proj?.spotlight) {
+      spotlight.push(entry);
     } else {
-      others.push(proj);
+      others.push(entry);
     }
   });
-  return [...spotlight, ...others];
+  const sortEntries = (entries) =>
+    entries
+      .sort((a, b) => compareProjectsByOrder(a.proj, b.proj, a.fallback, b.fallback))
+      .map((entry) => entry.proj);
+  return [...sortEntries(spotlight), ...sortEntries(others)];
 }
 
 function getProjectSnippet(text, maxLength = 120) {
@@ -2127,6 +2155,7 @@ function openEditModal(index) {
   const categoryInput = $id("editCategory");
   const statusSelect = $id("editStatus");
   const tagsInput = $id("editTags");
+  const orderInput = $id("editOrder");
 
   if (titleInput) titleInput.value = project.title || "";
   if (clientInput) clientInput.value = project.client || "";
@@ -2134,6 +2163,7 @@ function openEditModal(index) {
   if (categoryInput) categoryInput.value = project.category || "";
   if (statusSelect) statusSelect.value = (project.status || "published") === "draft" ? "draft" : "published";
   if (tagsInput) tagsInput.value = Array.isArray(project.tags) ? project.tags.join(", ") : "";
+  if (orderInput) orderInput.value = Number.isFinite(project.order) ? project.order : "";
 
   currentHeroMediaUrl = deriveHeroMediaUrl(project);
   const heroField = $id("editHeroMedia");
@@ -2411,6 +2441,8 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
     const status = statusValue === "draft" ? "draft" : "published";
     const tags = parseTagsInput(formData.get("tags") || "");
 
+    const orderValue = parseOrderInputValue(formData.get("order"));
+
     const payload = {
       title: (formData.get("title") || "").toString().trim(),
       client: (formData.get("client") || "").toString().trim(),
@@ -2420,6 +2452,7 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
       status,
       tags,
       spotlight: false,
+      order: orderValue,
     };
 
     setProgress(92);
@@ -2486,9 +2519,11 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
   const saveBtn = e.submitter || document.querySelector('#editForm button[type="submit"]');
   const statusSelect = document.getElementById("editStatus");
   const tagsInput = document.getElementById("editTags");
+  const orderInput = document.getElementById("editOrder");
   const statusValue = statusSelect ? statusSelect.value : "published";
   const normalizedStatus = statusValue === "draft" ? "draft" : "published";
   const tags = parseTagsInput(tagsInput?.value || "");
+  const orderValue = parseOrderInputValue(orderInput?.value);
 
   if (saveBtn) {
     saveBtn.dataset.originalText = saveBtn.dataset.originalText || saveBtn.textContent;
@@ -2503,6 +2538,7 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
     category: category || "",
     status: normalizedStatus,
     tags,
+    order: orderValue,
     removed: Array.isArray(removedMedia) ? removedMedia : [],
     newMedia: [],
   };

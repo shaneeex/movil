@@ -11,6 +11,7 @@ import {
   sanitizeRemovalEntry,
   sanitizeMediaFocusUpdate,
   sanitizeHeroMediaUrl,
+  parseProjectOrder,
 } from "../../lib/projects.js";
 import {
   normalizeCategory,
@@ -108,6 +109,13 @@ export default withErrorHandling(async function handler(req, res) {
     }
 
     project.heroMediaUrl = sanitizeHeroMediaUrl(project, project.heroMediaUrl);
+    if (
+      body.order !== undefined ||
+      body.displayOrder !== undefined ||
+      body.sort !== undefined
+    ) {
+      project.order = parseProjectOrder(body.order ?? body.displayOrder ?? body.sort);
+    }
 
     await saveProjects(projects);
     return sendJSON(res, 200, { ok: true, project, index });
@@ -175,6 +183,13 @@ export default withErrorHandling(async function handler(req, res) {
   }
 
   project.heroMediaUrl = sanitizeHeroMediaUrl(project, project.heroMediaUrl);
+  if (
+    fields.order !== undefined ||
+    fields.displayOrder !== undefined ||
+    fields.sort !== undefined
+  ) {
+    project.order = parseProjectOrder(fields.order ?? fields.displayOrder ?? fields.sort);
+  }
 
   await saveProjects(projects);
   return sendJSON(res, 200, { ok: true, project, index });

@@ -9,6 +9,7 @@ import {
   applySpotlight,
   sanitizeIncomingMediaEntry,
   sanitizeHeroMediaUrl,
+  parseProjectOrder,
 } from "../../lib/projects.js";
 import {
   normalizeCategory,
@@ -48,6 +49,7 @@ export default withErrorHandling(async function handler(req, res) {
     }
 
     const spotlightEnabled = status === "published" && shouldSpotlight;
+    const order = parseProjectOrder(body?.order ?? body?.displayOrder ?? body?.sort);
 
     const newProject = {
       title: (body?.title || "").trim(),
@@ -60,6 +62,7 @@ export default withErrorHandling(async function handler(req, res) {
       status,
       tags,
       createdAt: new Date().toISOString(),
+      order,
     };
     projects.push(newProject);
     if (spotlightEnabled) {
@@ -82,6 +85,7 @@ export default withErrorHandling(async function handler(req, res) {
   const media = Array.isArray(files) ? files : [];
 
   const spotlightEnabled = status === "published" && shouldSpotlight;
+  const order = parseProjectOrder(fields.order ?? fields.displayOrder ?? fields.sort);
 
   const newProject = {
     title: (fields.title || "").trim(),
@@ -94,6 +98,7 @@ export default withErrorHandling(async function handler(req, res) {
     status,
     tags,
     createdAt: new Date().toISOString(),
+    order,
   };
   projects.push(newProject);
   if (spotlightEnabled) {
