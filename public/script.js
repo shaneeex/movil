@@ -791,6 +791,83 @@ function applyFeaturedMediaObserver(container) {
   });
 }
 
+function initHeroKineticHeadline() {
+  if (typeof window === "undefined" || typeof window.gsap === "undefined") return;
+  const wrapper = document.querySelector(".hero-text-inner");
+  if (!wrapper || wrapper.dataset.kinetic === "ready") return;
+  const accessibleText = (wrapper.dataset.text || wrapper.textContent || "").trim();
+  const lineInput = wrapper.dataset.lines || "";
+  const lines = lineInput
+    .split("|")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const segments = lines.length ? lines : accessibleText ? [accessibleText] : [];
+  if (!segments.length) return;
+
+  const fragment = document.createDocumentFragment();
+  segments.forEach((lineText, lineIndex) => {
+    const lineEl = document.createElement("span");
+    lineEl.className = "hero-kinetic-line";
+    lineEl.setAttribute("aria-hidden", "true");
+    Array.from(lineText).forEach((char, charIndex) => {
+      const letter = document.createElement("span");
+      letter.className = "hero-kinetic-letter";
+      letter.style.setProperty("--char-index", charIndex);
+      letter.style.setProperty("--line-index", lineIndex);
+      letter.textContent = char === " " ? "\u00A0" : char;
+      lineEl.appendChild(letter);
+    });
+    fragment.appendChild(lineEl);
+  });
+
+  const srLabel = document.createElement("span");
+  srLabel.className = "sr-only hero-kinetic-label";
+  srLabel.textContent = accessibleText || segments.join(" ");
+
+  wrapper.textContent = "";
+  wrapper.appendChild(fragment);
+  wrapper.appendChild(srLabel);
+  wrapper.dataset.kinetic = "ready";
+
+  const letters = wrapper.querySelectorAll(".hero-kinetic-letter");
+  if (!letters.length) return;
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefersReducedMotion) {
+    letters.forEach((node) => {
+      node.style.opacity = "1";
+      node.style.transform = "translateY(0)";
+    });
+    return;
+  }
+
+  const timeline = window.gsap.timeline({ repeat: -1, repeatDelay: 0.9 });
+  timeline.fromTo(
+    letters,
+    { yPercent: 120, rotateX: -55, opacity: 0 },
+    {
+      duration: 1.05,
+      yPercent: 0,
+      rotateX: 0,
+      opacity: 1,
+      ease: "expo.out",
+      stagger: { amount: 1.2, from: "start" },
+    },
+  );
+  timeline.to(
+    letters,
+    {
+      duration: 0.78,
+      yPercent: -120,
+      rotateX: 35,
+      opacity: 0,
+      ease: "power3.in",
+      stagger: { amount: 0.9, from: "end" },
+    },
+    "+=1.6",
+  );
+}
+
 function initHeroParallax() {
   if (heroParallaxInitialized || typeof window === "undefined") return;
   const hero = document.querySelector(".hero");
@@ -2911,6 +2988,7 @@ async function deleteProject(index) {
 /************ INIT ************/
 /************ INIT ************/
 document.addEventListener("DOMContentLoaded", async () => {
+  initHeroKineticHeadline();
   setupProjectsSync();
   setupModalInteractions();
   loadHeroAmbientVideo().catch(() => {});
