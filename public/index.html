@@ -88,14 +88,55 @@
 
   <section id="hero" class="hero">
     <div class="hero-background" aria-hidden="true">
-      <div class="hero-stripe hero-stripe--one"></div>
-      <div class="hero-stripe hero-stripe--two"></div>
-      <div class="hero-stripe hero-stripe--three"></div>
+      <div class="hero-video-layer hero-video--empty" data-hero-video data-depth="0.06">
+        <video
+          id="heroAmbientVideo"
+          muted
+          loop
+          playsinline
+          preload="none"
+          poster="/static/default-video-thumb.jpg"
+          aria-hidden="true">
+        </video>
+        <div class="hero-video-overlay"></div>
+        <div class="hero-video-glow"></div>
+      </div>
+      <div class="hero-stripe hero-stripe--one" data-depth="0.1"></div>
+      <div class="hero-stripe hero-stripe--two" data-depth="-0.04"></div>
+      <div class="hero-stripe hero-stripe--three" data-depth="0.14"></div>
     </div>
     <div class="hero-content">
-      <h1 id="heroText"><span class="hero-text-inner" data-text="Crafting Visual Experiences">Crafting Visual Experiences</span></h1>
-      <p class="hero-subtitle">Bold signs. Bigger impact.</p>
-      <a href="#projects" class="btn">Explore Projects</a>
+      <div class="hero-badge" data-depth="-0.05">
+        <span>24/7</span>
+        Emergency service
+      </div>
+      <p class="hero-kicker">Maldives · Fabrication Studio</p>
+      <h1 id="heroText">
+        <span class="hero-text-inner" data-text="Crafting Visual Experiences">Crafting Visual Experiences</span>
+      </h1>
+      <p class="hero-subtitle">
+        Illuminated signage, kinetic displays, and immersive retail that keep resorts and island brands unforgettable.
+      </p>
+      <div class="hero-cta">
+        <a href="#projects" class="btn">Explore Projects</a>
+        <a href="https://wa.me/9607899922" class="btn btn--ghost" target="_blank" rel="noopener">
+          WhatsApp Studio
+        </a>
+      </div>
+      <div class="hero-metrics">
+        <article class="metric-card" data-depth="0.03">
+          <span class="metric-value">250+</span>
+          <span class="metric-label">Installations delivered</span>
+        </article>
+        <article class="metric-card" data-depth="-0.02">
+          <span class="metric-value">48h</span>
+          <span class="metric-label">Rapid service window</span>
+        </article>
+        <article class="metric-card" data-depth="0.05">
+          <span class="metric-value">8</span>
+          <span class="metric-label">Islands serviced weekly</span>
+        </article>
+      </div>
     </div>
   </section>
 
@@ -135,72 +176,89 @@
 
     <!-- CONTACT SECTION -->
     <section id="contact" class="contact-section dark-panel reveal-section">
-      <div class="section-inner">
-        <h2>Contact Us</h2>
-        <p class="contact-subtitle">We'd love to hear from you! Reach out via chat, call, or visit us.</p>
-
-        <div class="contact-details">
-          <article class="contact-card">
-            <div class="contact-card-header">
-              <span class="contact-card-icon"><i class="fa-solid fa-location-dot"></i></span>
-              <div class="contact-card-meta">
-                <h3 class="contact-card-title">Visit Us</h3>
-                <p class="contact-card-value">H.Maanifa, Filligas Magu, Male' 20013</p>
+      <div class="section-inner contact-grid">
+        <div class="contact-column">
+          <p class="section-eyebrow">Let's build</p>
+          <h2>Contact Us</h2>
+          <p class="contact-subtitle">
+            We stage, fabricate, and install across the Maldives. Reach the workshop team instantly for briefs, emergency service, or showroom visits.
+          </p>
+          <div class="contact-actions">
+            <a class="btn" href="https://wa.me/9607899922" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-whatsapp"></i>
+              Chat on WhatsApp
+            </a>
+            <a class="btn btn--ghost" href="tel:+9607899922">
+              <i class="fa-solid fa-phone"></i>
+              Call +960 789 9922
+            </a>
+          </div>
+          <div class="contact-details">
+            <article class="contact-card">
+              <div class="contact-card-header">
+                <span class="contact-card-icon"><i class="fa-solid fa-headset"></i></span>
+                <div class="contact-card-meta">
+                  <h3 class="contact-card-title">Call Support</h3>
+                  <p class="contact-card-value">
+                    <a class="contact-inline-link" href="tel:+9607899922">+960 789 9922</a>
+                  </p>
+                </div>
               </div>
+              <a class="contact-card-action" href="tel:+9607899922">
+                <i class="fa-solid fa-phone"></i> Call Now
+              </a>
+              <div class="contact-card-secondary">
+                <a class="contact-card-chip" href="viber://chat?number=9607899922" target="_blank" rel="noopener noreferrer">
+                  <img src="https://cdn.simpleicons.org/viber/FFFFFF" alt="Viber" />
+                  Viber
+                </a>
+                <a class="contact-card-chip" href="https://wa.me/9607899922" target="_blank" rel="noopener noreferrer">
+                  <img src="https://cdn.simpleicons.org/whatsapp/FFFFFF" alt="WhatsApp" />
+                  WhatsApp
+                </a>
+              </div>
+            </article>
+
+            <article class="contact-card">
+              <div class="contact-card-header">
+                <span class="contact-card-icon"><i class="fa-solid fa-envelope"></i></span>
+                <div class="contact-card-meta">
+                  <h3 class="contact-card-title">Email Projects</h3>
+                  <p class="contact-card-value">
+                    <a class="contact-inline-link" href="mailto:sales@movillive.com">sales@movillive.com</a>
+                  </p>
+                </div>
+              </div>
+              <a class="contact-card-action" href="mailto:sales@movillive.com">
+                <i class="fa-solid fa-paper-plane"></i> Send Email
+              </a>
+            </article>
+          </div>
+        </div>
+
+        <article class="contact-card contact-card--map">
+          <div class="contact-card-header">
+            <span class="contact-card-icon"><i class="fa-solid fa-location-dot"></i></span>
+            <div class="contact-card-meta">
+              <h3 class="contact-card-title">Visit the showroom</h3>
+              <p class="contact-card-value">H.Maanifa, Filligas Magu, Male' 20013</p>
             </div>
+          </div>
+          <div class="contact-card-map">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.2227457999447!2d73.5174784!3d4.176567299999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b3f7f5055417773%3A0xbbd5f2701d1edb42!2sMovil!5e0!3m2!1sen!2smv!4v1760524115829!5m2!1sen!2smv"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div class="contact-map-meta">
+            <span>Sat – Thu · 9:00 – 21:00</span>
             <a class="contact-card-action" href="https://maps.app.goo.gl/6Be2Rj4qKT4tFPqA9" target="_blank" rel="noopener noreferrer">
               <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Maps
             </a>
-            <div class="contact-card-map">
-              <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.2227457999447!2d73.5174784!3d4.176567299999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3b3f7f5055417773%3A0xbbd5f2701d1edb42!2sMovil!5e0!3m2!1sen!2smv!4v1760524115829!5m2!1sen!2smv"
-                loading="lazy"
-                referrerpolicy="no-referrer-when-downgrade"
-                allowfullscreen>
-              </iframe>
-            </div>
-          </article>
-
-          <article class="contact-card">
-            <div class="contact-card-header">
-              <span class="contact-card-icon"><i class="fa-solid fa-phone"></i></span>
-              <div class="contact-card-meta">
-                <h3 class="contact-card-title">Call</h3>
-                <p class="contact-card-value">
-                  <a class="contact-inline-link" href="tel:+9607899922">+960 789 9922</a>
-                </p>
-              </div>
-            </div>
-            <a class="contact-card-action" href="tel:+9607899922">
-              <i class="fa-solid fa-phone"></i> Call Now
-            </a>
-            <div class="contact-card-secondary">
-              <a class="contact-card-chip" href="viber://chat?number=9607899922" target="_blank" rel="noopener noreferrer">
-                <img src="https://cdn.simpleicons.org/viber/FFFFFF" alt="Viber" />
-                Viber
-              </a>
-              <a class="contact-card-chip" href="https://wa.me/9607899922" target="_blank" rel="noopener noreferrer">
-                <img src="https://cdn.simpleicons.org/whatsapp/FFFFFF" alt="WhatsApp" />
-                WhatsApp
-              </a>
-            </div>
-          </article>
-
-          <article class="contact-card">
-            <div class="contact-card-header">
-              <span class="contact-card-icon"><i class="fa-solid fa-envelope"></i></span>
-              <div class="contact-card-meta">
-                <h3 class="contact-card-title">Email</h3>
-                <p class="contact-card-value">
-                  <a class="contact-inline-link" href="mailto:sales@movillive.com">sales@movillive.com</a>
-                </p>
-              </div>
-            </div>
-            <a class="contact-card-action" href="mailto:sales@movillive.com">
-              <i class="fa-solid fa-paper-plane"></i> Send Email
-            </a>
-          </article>
-        </div>
+          </div>
+        </article>
       </div>
     </section>
   </main>

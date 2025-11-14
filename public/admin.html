@@ -911,58 +911,447 @@
         align-self: flex-start;
       }
     }
+
+    .admin-layout {
+      width: min(1280px, 96vw);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .admin-sidebar {
+      background: linear-gradient(155deg, rgba(17, 19, 33, 0.92), rgba(7, 8, 14, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 24px;
+      display: grid;
+      gap: 24px;
+      position: sticky;
+      top: 32px;
+      height: fit-content;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-brand img {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      object-fit: cover;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .admin-brand p {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .admin-brand span {
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.6);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .admin-nav {
+      display: grid;
+      gap: 10px;
+    }
+
+    .admin-nav a {
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: rgba(255, 255, 255, 0.7);
+      border: 1px solid transparent;
+      transition: var(--transition);
+    }
+
+    .admin-nav a:hover,
+    .admin-nav a:focus-visible {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .admin-sidebar form {
+      margin: 0;
+    }
+
+    .admin-sidebar-note {
+      margin: 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .admin-sidebar-note a {
+      color: #fff;
+    }
+
+    .admin-main {
+      display: grid;
+      gap: 32px;
+    }
+
+    .admin-headline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .admin-headline h1 {
+      margin: 0;
+      font-size: 1.9rem;
+      letter-spacing: 0.1em;
+    }
+
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      min-width: 320px;
+    }
+
+    .admin-stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 14px 16px;
+      display: grid;
+      gap: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .admin-stat-label {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .admin-stat-value {
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .admin-panel {
+      background: linear-gradient(160deg, rgba(16, 18, 32, 0.94), rgba(8, 9, 16, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 24px;
+      padding: clamp(20px, 3vw, 28px);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+      display: grid;
+      gap: 24px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .panel-header h2,
+    .panel-header h3 {
+      margin: 0;
+    }
+
+    .panel-kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      font-size: 0.68rem;
+      color: rgba(255, 255, 255, 0.45);
+      margin: 0 0 6px;
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .admin-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: linear-gradient(135deg, #0069c5, #0092b7, #08af8a);
+      color: #fff;
+      transition: var(--transition);
+    }
+
+    .admin-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .admin-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .admin-btn--ghost {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .upload-form-wrapper {
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 20px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .upload-form-wrapper[hidden] {
+      display: none !important;
+    }
+
+    .hero-video-preview {
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-video-frame {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-video-frame video {
+      width: 100%;
+      height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hero-video-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.6);
+      background: rgba(0, 0, 0, 0.45);
+    }
+
+    .hero-video-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .hero-video-status {
+      margin: 0;
+    }
+
+    .hero-video-updated {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .hero-video-progress {
+      width: min(200px, 40vw);
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .hero-video-progress[hidden] {
+      display: none !important;
+    }
+
+    .hero-video-progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #0069c5, #08af8a);
+      transition: width 0.2s ease;
+    }
+
+    @media (max-width: 1080px) {
+      .admin-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .admin-sidebar {
+        position: static;
+      }
+
+      .panel-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="admin-header">
-      <h1>Movil Admin</h1>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-brand">
+        <img src="navlogo.png" alt="Movil logo" />
+        <div>
+          <p>Movil Studio</p>
+          <span>Control center</span>
+        </div>
+      </div>
+      <nav class="admin-nav" aria-label="Admin navigation">
+        <a href="#heroLoop">Hero Loop</a>
+        <a href="#createProject">New Project</a>
+        <a href="#projectsAdmin">Projects</a>
+      </nav>
       <form action="/api/admin/logout" method="post">
-        <button type="submit" class="logout-btn">Sign Out</button>
+        <button type="submit" class="admin-btn admin-btn--ghost">Sign Out</button>
       </form>
-    </div>
+      <p class="admin-sidebar-note">
+        Need help?
+        <a href="mailto:sales@movillive.com">sales@movillive.com</a>
+      </p>
+    </aside>
 
-    <!-- Upload Form (NO link field) -->
-    <form id="uploadForm" enctype="multipart/form-data">
-      <h2>Add Project</h2>
-      <input type="text" name="title" placeholder="Project Title" required />
-      <input type="text" name="client" placeholder="Client Name" />
-      <textarea name="description" placeholder="Description"></textarea>
-      <input type="text" name="category" placeholder="Category (e.g., Signage)" />
-      <select name="status" id="uploadStatus" aria-label="Status">
-        <option value="published">Published</option>
-        <option value="draft">Draft</option>
-      </select>
-      <input type="text" name="tags" id="uploadTags" placeholder="Tags (comma separated)" aria-label="Tags" />
-      <input type="number" name="order" id="uploadOrder" placeholder="Display order (optional)" aria-label="Display order" />
-      <input type="file" name="media" multiple accept="image/*,video/*" required />
-      <button type="submit">Upload Project</button>
-      <div class="upload-progress" id="uploadProgress">
-        <div class="upload-progress-bar"><div id="uploadProgressFill"></div></div>
-        <span class="upload-progress-label" id="uploadProgressLabel">0%</span>
-      </div>
-      <div class="muted">Images are compressed; videos get thumbnails (if ffmpeg is installed).</div>
-    </form>
+    <main class="admin-main">
+      <header class="admin-headline">
+        <div>
+          <p class="panel-kicker">Operations</p>
+          <h1>Movil Admin</h1>
+          <p class="muted">Ship updates to the public site in minutes.</p>
+        </div>
+        <div class="admin-stats-grid">
+          <article class="admin-stat-card">
+            <span class="admin-stat-label">Published</span>
+            <strong class="admin-stat-value" id="statPublished">0</strong>
+          </article>
+          <article class="admin-stat-card">
+            <span class="admin-stat-label">Drafts</span>
+            <strong class="admin-stat-value" id="statDrafts">0</strong>
+          </article>
+          <article class="admin-stat-card">
+            <span class="admin-stat-label">Spotlight</span>
+            <strong class="admin-stat-value" id="statSpotlight">0</strong>
+          </article>
+        </div>
+      </header>
 
-    <h2 style="margin-top:24px">Existing Projects</h2>
-    <div class="admin-filter-bar">
-      <div class="admin-filter-group">
-        <label for="adminStatusFilter">Status</label>
-        <select id="adminStatusFilter">
-          <option value="all">All</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-        </select>
-      </div>
-      <div class="admin-filter-group">
-        <label>Tags</label>
-        <div id="adminTagFilters" class="admin-tag-filter"></div>
-      </div>
-      <button type="button" id="adminResetFilters" class="admin-reset-btn">Reset</button>
-    </div>
+      <section id="heroLoop" class="admin-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Homepage ambiance</p>
+            <h2>Hero background loop</h2>
+            <p class="muted">Upload a muted MP4/MOV to refresh the hero overlay.</p>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="admin-btn admin-btn--ghost" id="heroVideoClearBtn">Remove loop</button>
+            <button type="button" class="admin-btn" id="heroVideoUploadBtn">Upload loop</button>
+            <input type="file" id="heroVideoInput" accept="video/*" hidden />
+          </div>
+        </div>
+        <div class="hero-video-preview" id="heroVideoPreview">
+          <div class="hero-video-frame">
+            <video id="heroVideoPreviewPlayer" muted loop playsinline preload="metadata"></video>
+            <div class="hero-video-empty" id="heroVideoEmptyState">No hero loop uploaded yet.</div>
+          </div>
+          <div class="hero-video-meta">
+            <div>
+              <p id="heroVideoStatus" class="hero-video-status muted">Drop in a video to get started.</p>
+              <p id="heroVideoUpdated" class="hero-video-updated"></p>
+            </div>
+            <div class="hero-video-progress" id="heroVideoProgress" hidden>
+              <div class="hero-video-progress-fill" id="heroVideoProgressFill"></div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    <div id="adminProjects" class="projects-grid"></div>
-    <div id="adminProjectsPagination" class="projects-pagination"></div>
+      <section id="createProject" class="admin-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Projects</p>
+            <h2>New project</h2>
+            <p class="muted">Upload assets and publish when ready.</p>
+          </div>
+          <button type="button" class="admin-btn" id="toggleUploadPanel" aria-expanded="false">
+            + Add new project
+          </button>
+        </div>
+        <div id="uploadFormWrapper" class="upload-form-wrapper" data-open="false" hidden>
+          <form id="uploadForm" enctype="multipart/form-data">
+            <h3>Add Project</h3>
+            <input type="text" name="title" placeholder="Project Title" required />
+            <input type="text" name="client" placeholder="Client Name" />
+            <textarea name="description" placeholder="Description"></textarea>
+            <input type="text" name="category" placeholder="Category (e.g., Signage)" />
+            <select name="status" id="uploadStatus" aria-label="Status">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+            <input type="text" name="tags" id="uploadTags" placeholder="Tags (comma separated)" aria-label="Tags" />
+            <input type="number" name="order" id="uploadOrder" placeholder="Display order (optional)" aria-label="Display order" />
+            <input type="file" name="media" multiple accept="image/*,video/*" required />
+            <button type="submit" class="admin-btn">Upload Project</button>
+            <div class="upload-progress" id="uploadProgress">
+              <div class="upload-progress-bar"><div id="uploadProgressFill"></div></div>
+              <span class="upload-progress-label" id="uploadProgressLabel">0%</span>
+            </div>
+            <div class="muted">Images are compressed; videos get thumbnails (if ffmpeg is installed).</div>
+          </form>
+        </div>
+      </section>
+
+      <section id="projectsAdmin" class="admin-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Library</p>
+            <h2>Existing Projects</h2>
+          </div>
+        </div>
+        <div class="admin-filter-bar">
+          <div class="admin-filter-group">
+            <label for="adminStatusFilter">Status</label>
+            <select id="adminStatusFilter">
+              <option value="all">All</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+          <div class="admin-filter-group">
+            <label>Tags</label>
+            <div id="adminTagFilters" class="admin-tag-filter"></div>
+          </div>
+          <button type="button" id="adminResetFilters" class="admin-btn admin-btn--ghost admin-reset-btn">Reset</button>
+        </div>
+
+        <div id="adminProjects" class="projects-grid"></div>
+        <div id="adminProjectsPagination" class="projects-pagination"></div>
+      </section>
+    </main>
   </div>
 
   <!-- Edit Modal -->

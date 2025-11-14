@@ -40,6 +40,9 @@ let adminTagFilter = [];
 let adminAvailableTags = [];
 const PROJECTS_CACHE_KEY = "movilstudio:projects-cache";
 const PROJECTS_CACHE_TTL = 30 * 1000;
+const HERO_VIDEO_CACHE_TTL = 60 * 1000;
+let heroVideoCache = null;
+let heroVideoCacheTime = 0;
 
 if (typeof window !== "undefined") {
   setupProjectsSync();
@@ -855,6 +858,72 @@ function setupHeroBlend() {
   heroBlendObserver.observe(projectsSection);
 }
 
+async function fetchHeroVideo(force = false) {
+  const now = Date.now();
+  if (!force && heroVideoCache && now - heroVideoCacheTime < HERO_VIDEO_CACHE_TTL) {
+    return heroVideoCache;
+  }
+  try {
+    const res = await fetch("/api/config/hero-video", { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`Hero config request failed (${res.status})`);
+    }
+    const data = await res.json();
+    heroVideoCache = data?.heroVideo || null;
+    heroVideoCacheTime = Date.now();
+    return heroVideoCache;
+  } catch (err) {
+    console.warn("Hero video fetch failed:", err?.message || err);
+    heroVideoCache = null;
+    heroVideoCacheTime = Date.now();
+    return null;
+  }
+}
+
+async function loadHeroAmbientVideo({ force = false, payload } = {}) {
+  const shell = document.querySelector("[data-hero-video]");
+  if (!shell) return null;
+  const video = shell.querySelector("video");
+  if (!video) return null;
+  let heroVideo = payload;
+  if (!heroVideo) {
+    heroVideo = await fetchHeroVideo(force);
+  }
+  if (!heroVideo?.url) {
+    shell.classList.add("hero-video--empty");
+    if (video.getAttribute("src")) {
+      video.removeAttribute("src");
+      try {
+        video.load();
+      } catch {
+        /* ignore */
+      }
+    }
+    return null;
+  }
+  shell.classList.remove("hero-video--empty");
+  if (heroVideo.thumbnail) {
+    video.poster = heroVideo.thumbnail;
+  }
+  if (video.getAttribute("src") !== heroVideo.url) {
+    video.src = heroVideo.url;
+    try {
+      video.load();
+    } catch {
+      /* noop */
+    }
+  }
+  video.muted = true;
+  video.loop = true;
+  video.autoplay = true;
+  video.setAttribute("playsinline", "true");
+  const playPromise = video.play();
+  if (playPromise && typeof playPromise.catch === "function") {
+    playPromise.catch(() => {});
+  }
+  return heroVideo;
+}
+
 function initCtaBanner() {
   const banner = document.getElementById('ctaBanner');
   if (!banner || banner.dataset.bound === "1") return;
@@ -1661,6 +1730,202 @@ function showAdminToast(message, type = "info") {
   setTimeout(removeToast, 2800);
 }
 
+function setHeroVideoUploadProgress(value) {
+  const progress = $id("heroVideoProgress");
+  const fill = $id("heroVideoProgressFill");
+  if (!progress || !fill) return;
+  if (value === null) {
+    progress.hidden = true;
+    fill.style.width = "0%";
+    return;
+  }
+  progress.hidden = false;
+  const safe = Math.max(0, Math.min(100, value));
+  fill.style.width = `${safe}%`;
+}
+
+function setHeroVideoUploading(isUploading) {
+  const uploadBtn = $id("heroVideoUploadBtn");
+  const clearBtn = $id("heroVideoClearBtn");
+  if (uploadBtn) {
+    uploadBtn.disabled = isUploading;
+    uploadBtn.textContent = isUploading ? "Uploading…" : "Upload loop";
+  }
+  if (clearBtn) {
+    clearBtn.disabled = isUploading;
+  }
+}
+
+async function refreshAdminHeroVideo(payload) {
+  const preview = $id("heroVideoPreviewPlayer");
+  const empty = $id("heroVideoEmptyState");
+  const status = $id("heroVideoStatus");
+  const updated = $id("heroVideoUpdated");
+  if (!preview || !empty) return null;
+  let heroVideo = payload;
+  if (!heroVideo) {
+    try {
+      const res = await fetch("/api/admin/hero-video", { cache: "no-store" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      const data = await res.json();
+      heroVideo = data?.heroVideo || null;
+      heroVideoCache = heroVideo;
+      heroVideoCacheTime = Date.now();
+    } catch (err) {
+      console.warn("Hero video read failed:", err?.message || err);
+      heroVideo = null;
+    }
+  }
+  if (!heroVideo || !heroVideo.url) {
+    if (status) status.textContent = "No hero loop uploaded yet.";
+    if (updated) updated.textContent = "";
+    empty.hidden = false;
+    preview.removeAttribute("src");
+    try {
+      preview.load();
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+  empty.hidden = true;
+  if (status) status.textContent = heroVideo.originalFilename || "Uploaded video";
+  if (updated) {
+    updated.textContent = heroVideo.updatedAt
+      ? `Updated ${new Date(heroVideo.updatedAt).toLocaleString()}`
+      : "Updated just now";
+  }
+  if (heroVideo.thumbnail) {
+    preview.poster = heroVideo.thumbnail;
+  }
+  if (preview.getAttribute("src") !== heroVideo.url) {
+    preview.src = heroVideo.url;
+    try {
+      preview.load();
+    } catch {
+      /* noop */
+    }
+  }
+  preview.play().catch(() => {});
+  return heroVideo;
+}
+
+async function handleHeroVideoUpload(file) {
+  if (!file) return;
+  if (!file.type || !file.type.startsWith("video/")) {
+    showAdminToast("Please choose a video file.", "error");
+    return;
+  }
+  try {
+    setHeroVideoUploading(true);
+    setHeroVideoUploadProgress(4);
+    const config = await getCloudinaryConfig();
+    const media = await uploadFileToCloudinaryUnsigned(file, config, (pct) => {
+      setHeroVideoUploadProgress(Math.min(90, pct * 0.9));
+    });
+    if (media.type !== "video") {
+      throw new Error("Hero background must be a video.");
+    }
+    const res = await fetch("/api/admin/hero-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ media }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Hero update failed (${res.status})`);
+    }
+    setHeroVideoUploadProgress(100);
+    showAdminToast("Hero background updated.", "success");
+    heroVideoCache = data.heroVideo || null;
+    heroVideoCacheTime = Date.now();
+    await refreshAdminHeroVideo(data.heroVideo);
+    await loadHeroAmbientVideo({ payload: data.heroVideo });
+  } catch (err) {
+    console.error("Hero upload failed:", err);
+    showAdminToast(err?.message || "Upload failed. Please try again.", "error");
+  } finally {
+    setHeroVideoUploading(false);
+    setTimeout(() => setHeroVideoUploadProgress(null), 600);
+  }
+}
+
+async function handleHeroVideoClear() {
+  if (!window.confirm("Remove the hero loop?")) return;
+  try {
+    setHeroVideoUploading(true);
+    const res = await fetch("/api/admin/hero-video", { method: "DELETE" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Request failed (${res.status})`);
+    }
+    showAdminToast("Hero loop removed.", "success");
+    heroVideoCache = null;
+    heroVideoCacheTime = Date.now();
+    await refreshAdminHeroVideo(null);
+    await loadHeroAmbientVideo({ force: true });
+  } catch (err) {
+    console.error("Hero removal failed:", err);
+    showAdminToast(err?.message || "Unable to remove hero loop.", "error");
+  } finally {
+    setHeroVideoUploading(false);
+    setHeroVideoUploadProgress(null);
+  }
+}
+
+async function initAdminHeroLoopPanel() {
+  const preview = $id("heroVideoPreview");
+  if (!preview) return;
+  await refreshAdminHeroVideo();
+  const uploadBtn = $id("heroVideoUploadBtn");
+  const fileInput = $id("heroVideoInput");
+  const clearBtn = $id("heroVideoClearBtn");
+  uploadBtn?.addEventListener("click", () => fileInput?.click());
+  fileInput?.addEventListener("change", async (event) => {
+    const target = event.target;
+    const file = target?.files?.[0];
+    if (!file) return;
+    await handleHeroVideoUpload(file);
+    target.value = "";
+  });
+  clearBtn?.addEventListener("click", () => handleHeroVideoClear());
+}
+
+function initUploadFormToggle() {
+  const wrapper = $id("uploadFormWrapper");
+  const toggle = $id("toggleUploadPanel");
+  if (!wrapper || !toggle) return;
+  const setState = (open) => {
+    wrapper.dataset.open = open ? "true" : "false";
+    wrapper.hidden = !open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.textContent = open ? "Close form" : "+ Add new project";
+  };
+  toggle.addEventListener("click", () => {
+    const next = wrapper.dataset.open !== "true";
+    setState(next);
+    if (next) {
+      wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+  setState(false);
+  window.openUploadFormPanel = () => setState(true);
+  window.resetUploadFormPanel = () => setState(false);
+}
+
+function updateAdminStats(projects = []) {
+  const published = projects.filter((p) => (p.status || "published") === "published").length;
+  const drafts = projects.length - published;
+  const spotlight = projects.filter((p) => p.spotlight).length;
+  const setValue = (id, value) => {
+    const el = $id(id);
+    if (el) el.textContent = value;
+  };
+  setValue("statPublished", published);
+  setValue("statDrafts", drafts);
+  setValue("statSpotlight", spotlight);
+}
+
 function setHeroMediaSelection(url) {
   currentHeroMediaUrl = url || "";
   refreshHeroIndicators();
@@ -1746,6 +2011,7 @@ async function loadAdminProjects(page = 1) {
   }));
 
   window.adminProjectsCache = normalized;
+  updateAdminStats(normalized);
   adminAvailableTags = collectAdminTags(normalized);
   adminTagFilter = adminTagFilter.filter((tag) =>
     adminAvailableTags.some((available) => available.toLowerCase() === tag.toLowerCase()),
@@ -2482,6 +2748,7 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
     const tagsField = $id("uploadTags");
     if (tagsField) tagsField.value = "";
     showAdminToast("Project uploaded successfully!", "success");
+    window.resetUploadFormPanel?.();
 
     try {
       await loadAdminProjects(1);
@@ -2646,6 +2913,7 @@ async function deleteProject(index) {
 document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
   setupModalInteractions();
+  loadHeroAmbientVideo().catch(() => {});
   scheduleIdle(() => {
     applySectionObserver();
   });
@@ -2683,6 +2951,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     // On admin.html
     try {
       await ensureAdminSession();
+      await initAdminHeroLoopPanel();
+      initUploadFormToggle();
       await loadAdminProjects(1);
     } catch (err) {
       console.error(err);
