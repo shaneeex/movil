@@ -1356,7 +1356,7 @@ header .container {
   min-height: clamp(560px, 80vh, 880px);
   border-radius: clamp(18px, 5vw, 40px);
   overflow: hidden;
-  background: #03060f;
+  background: radial-gradient(circle at 20% 20%, rgba(36, 53, 105, 0.6), rgba(3, 6, 15, 0.95) 65%);
   box-shadow: 0 45px 120px rgba(0, 0, 0, 0.55);
   isolation: isolate;
   font-family: "Longsile", "Space Grotesk", "Poppins", sans-serif;
@@ -1365,11 +1365,9 @@ header .container {
 .hero-kinetic__frame {
   position: absolute;
   inset: 0;
-  background-image: url("https://assets.codepen.io/7558/web03.webp");
-  background-size: cover;
-  background-position: center;
-  opacity: 0.55;
-  filter: saturate(0.85);
+  background: linear-gradient(135deg, rgba(34, 45, 85, 0.45), rgba(8, 12, 35, 0.9));
+  opacity: 0.8;
+  filter: saturate(0.9);
   z-index: 1;
 }
 
@@ -1386,19 +1384,19 @@ header .container {
 
 .hero-kinetic__bg--default {
   opacity: 1;
-  background-image: url("https://assets.codepen.io/7558/wave-bg-001.webp");
+  background: radial-gradient(circle at 30% 30%, rgba(76, 116, 224, 0.3), rgba(3, 6, 15, 0));
 }
 
 .hero-kinetic__bg--crafting {
-  background-image: url("https://assets.codepen.io/7558/wave-bg-002.webp");
+  background: linear-gradient(125deg, rgba(108, 95, 255, 0.6), rgba(15, 33, 62, 0));
 }
 
 .hero-kinetic__bg--visual {
-  background-image: url("https://assets.codepen.io/7558/wave-bg-003.webp");
+  background: linear-gradient(180deg, rgba(19, 216, 251, 0.35), rgba(3, 6, 15, 0));
 }
 
 .hero-kinetic__bg--experiences {
-  background-image: url("https://assets.codepen.io/7558/wave-bg-004.webp");
+  background: linear-gradient(225deg, rgba(255, 178, 106, 0.4), rgba(3, 6, 15, 0));
 }
 
 .hero-kinetic__gradient {
@@ -1417,7 +1415,7 @@ header .container {
 
 .hero-kinetic__grid-word {
   position: absolute;
-  color: #ffcc00;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.82rem;
   letter-spacing: 0.08em;
   font-family: "TheGoodMonolith", monospace;
@@ -2372,3 +2370,41 @@ padding: clamp(66px, 11vh, 100px) 0;
 
 
 
+.hero-content--overlay {
+  position: absolute;
+  inset: auto clamp(1.4rem, 4vw, 3rem) clamp(1.6rem, 4vw, 3.5rem);
+  z-index: 5;
+  display: grid;
+  gap: 0.9rem;
+  text-align: center;
+  background: rgba(2, 5, 12, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: clamp(18px, 4vw, 28px);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.hero-content--overlay .section-eyebrow {
+  margin: 0;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.78rem;
+}
+
+.hero-content--overlay .hero-subtitle {
+  color: rgba(245, 246, 250, 0.85);
+  margin: 0;
+}
+
+.hero-content--overlay .btn {
+  justify-self: center;
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .hero-content--overlay {
+    inset: auto 1rem 1.2rem;
+  }
+}
