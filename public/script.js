@@ -791,6 +791,304 @@ function applyFeaturedMediaObserver(container) {
   });
 }
 
+function initHeroKineticEffect() {
+  if (typeof window === "undefined" || typeof window.gsap === "undefined") return;
+  const stage = document.querySelector(".hero-kinetic");
+  if (!stage || stage.dataset.bound === "1") return;
+
+  const start = () => {
+    if (stage.dataset.bound === "1") return;
+    stage.dataset.bound = "1";
+
+    const { gsap } = window;
+    const SplitText = window.SplitText;
+    const CustomEase = window.CustomEase;
+    const ScrambleTextPlugin = window.ScrambleTextPlugin;
+    const plugins = [SplitText, CustomEase, ScrambleTextPlugin].filter(Boolean);
+    if (plugins.length) {
+      gsap.registerPlugin(...plugins);
+    }
+
+    if (CustomEase) {
+      CustomEase.create("heroKineticEase", "0.86, 0, 0.07, 1");
+      CustomEase.create("heroKineticMouse", "0.25, 0.1, 0.25, 1");
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const backgroundImages = {};
+    stage.querySelectorAll("[data-kinetic-bg]").forEach((node) => {
+      const key = node.getAttribute("data-kinetic-bg");
+      if (key) {
+        backgroundImages[key] = node;
+        node.style.opacity = key === "default" ? "1" : "0";
+      }
+    });
+
+    const textItems = Array.from(stage.querySelectorAll("[data-kinetic-word]")).map((node) => ({
+      node,
+      key: node.dataset.kineticWord || node.textContent.trim(),
+    }));
+
+    const typeLines = stage.querySelectorAll(".hero-kinetic__type-line");
+    typeLines.forEach((line, index) => {
+      line.classList.toggle("is-odd", index % 2 === 0);
+      line.classList.toggle("is-even", index % 2 === 1);
+    });
+
+    if (!prefersReducedMotion) {
+      gsap.to(stage.querySelectorAll(".hero-kinetic__type-line.is-odd"), {
+        yPercent: -100,
+        repeat: -1,
+        duration: 26,
+        ease: "none",
+        stagger: 4,
+      });
+      gsap.to(stage.querySelectorAll(".hero-kinetic__type-line.is-even"), {
+        yPercent: 100,
+        repeat: -1,
+        duration: 22,
+        ease: "none",
+        stagger: 4,
+      });
+    }
+
+    const alternativeTexts = {
+      focus: {
+        BE: "BECOME",
+        PRESENT: "MINDFUL",
+        LISTEN: "HEAR",
+        DEEPLY: "INTENTLY",
+        OBSERVE: "NOTICE",
+        "&": "+",
+        FEEL: "SENSE",
+        MAKE: "CREATE",
+        BETTER: "IMPROVED",
+        DECISIONS: "CHOICES",
+        THE: "YOUR",
+        CREATIVE: "ARTISTIC",
+        PROCESS: "JOURNEY",
+        IS: "FEELS",
+        MYSTERIOUS: "MAGICAL",
+        S: "START",
+        I: "INSPIRE",
+        M: "MAKE",
+        P: "PURE",
+        L: "LIGHT",
+        C: "CREATE",
+        T: "TRANSFORM",
+        Y: "YOURS",
+        "IS THE KEY": "UNLOCKS ALL",
+        "FIND YOUR VOICE": "SPEAK YOUR TRUTH",
+        "TRUST INTUITION": "FOLLOW INSTINCT",
+        "EMBRACE SILENCE": "WELCOME STILLNESS",
+        "QUESTION EVERYTHING": "CHALLENGE NORMS",
+        TRUTH: "HONESTY",
+        WISDOM: "INSIGHT",
+        FOCUS: "CONCENTRATE",
+        ATTENTION: "AWARENESS",
+        AWARENESS: "CONSCIOUSNESS",
+        PRESENCE: "BEING",
+        SIMPLIFY: "MINIMIZE",
+        REFINE: "PERFECT",
+      },
+      presence: {
+        BE: "EVOLVE",
+        PRESENT: "ENGAGED",
+        LISTEN: "ABSORB",
+        DEEPLY: "FULLY",
+        OBSERVE: "ANALYZE",
+        "&": "?",
+        FEEL: "EXPERIENCE",
+        MAKE: "BUILD",
+        BETTER: "STRONGER",
+        DECISIONS: "SYSTEMS",
+        THE: "EACH",
+        CREATIVE: "ITERATIVE",
+        PROCESS: "METHOD",
+        IS: "BECOMES",
+        MYSTERIOUS: "REVEALING",
+        S: "STRUCTURE",
+        I: "ITERATE",
+        M: "METHOD",
+        P: "PRACTICE",
+        L: "LEARN",
+        C: "CONSTRUCT",
+        T: "TECHNIQUE",
+        Y: "YIELD",
+        "IS THE KEY": "DRIVES SUCCESS",
+        "FIND YOUR VOICE": "DEVELOP YOUR STYLE",
+        "TRUST INTUITION": "FOLLOW THE FLOW",
+        "EMBRACE SILENCE": "VALUE PAUSES",
+        "QUESTION EVERYTHING": "EXAMINE DETAILS",
+        TRUTH: "CLARITY",
+        WISDOM: "KNOWLEDGE",
+        FOCUS: "DIRECTION",
+        ATTENTION: "PRECISION",
+        AWARENESS: "UNDERSTANDING",
+        PRESENCE: "ENGAGEMENT",
+        SIMPLIFY: "STREAMLINE",
+        REFINE: "OPTIMIZE",
+      },
+      feel: {
+        BE: "SEE",
+        PRESENT: "FOCUSED",
+        LISTEN: "UNDERSTAND",
+        DEEPLY: "CLEARLY",
+        OBSERVE: "PERCEIVE",
+        "&": "=",
+        FEEL: "KNOW",
+        MAKE: "ACHIEVE",
+        BETTER: "CLEARER",
+        DECISIONS: "VISION",
+        THE: "THIS",
+        CREATIVE: "INSIGHTFUL",
+        PROCESS: "THINKING",
+        IS: "BRINGS",
+        MYSTERIOUS: "ILLUMINATING",
+        S: "SHARP",
+        I: "INSIGHT",
+        M: "MINDFUL",
+        P: "PRECISE",
+        L: "LUCID",
+        C: "CLEAR",
+        T: "TRANSPARENT",
+        Y: "YES",
+        "IS THE KEY": "REVEALS TRUTH",
+        "FIND YOUR VOICE": "DISCOVER YOUR VISION",
+        "TRUST INTUITION": "BELIEVE YOUR EYES",
+        "EMBRACE SILENCE": "SEEK STILLNESS",
+        "QUESTION EVERYTHING": "CLARIFY ASSUMPTIONS",
+        TRUTH: "REALITY",
+        WISDOM: "PERCEPTION",
+        FOCUS: "CLARITY",
+        ATTENTION: "OBSERVATION",
+        AWARENESS: "RECOGNITION",
+        PRESENCE: "ALERTNESS",
+        SIMPLIFY: "DISTILL",
+        REFINE: "SHARPEN",
+      },
+    };
+
+    const splits = new Map();
+    const rows = stage.querySelectorAll("[data-kinetic-row]");
+    rows.forEach((row) => {
+      const label = row.querySelector(".hero-kinetic__row-text");
+      if (!label) return;
+      label.style.visibility = "visible";
+      label.style.opacity = "1";
+      if (SplitText && !prefersReducedMotion) {
+        splits.set(row, new SplitText(label, { type: "chars" }));
+        gsap.set(splits.get(row).chars, { yPercent: 110, opacity: 0 });
+      }
+      row.addEventListener("pointerenter", () => activateRow(row));
+      row.addEventListener("focusin", () => activateRow(row));
+    });
+
+    let activeRowId = null;
+    let lettersTimeline = null;
+    let scrambleTimeline = null;
+    let resetHandle = null;
+
+    const scheduleReset = () => {
+      clearTimeout(resetHandle);
+      resetHandle = window.setTimeout(() => {
+        activeRowId = null;
+        rows.forEach((row) => row.classList.remove("is-active"));
+        switchBackground("default");
+        updateWords("default");
+      }, 900);
+    };
+
+    stage.addEventListener("pointerleave", scheduleReset);
+    stage.addEventListener("focusout", (event) => {
+      if (!stage.contains(event.relatedTarget)) {
+        scheduleReset();
+      }
+    });
+
+    function switchBackground(targetId) {
+      Object.entries(backgroundImages).forEach(([key, node]) => {
+        gsap.to(node, {
+          opacity: key === targetId ? 1 : 0,
+          duration: 0.9,
+          ease: CustomEase ? "heroKineticEase" : "power2.out",
+        });
+      });
+    }
+
+    function updateWords(targetId) {
+      const replacements = alternativeTexts[targetId] || {};
+      if (prefersReducedMotion || !ScrambleTextPlugin) {
+        textItems.forEach(({ node, key }) => {
+          node.textContent = replacements[key] || key;
+        });
+        return;
+      }
+      scrambleTimeline?.kill();
+      scrambleTimeline = gsap.timeline();
+      textItems.forEach(({ node, key }, index) => {
+        const next = replacements[key] || key;
+        scrambleTimeline.to(
+          node,
+          {
+            duration: 0.65,
+            scrambleText: {
+              text: next,
+              chars: "upperCase",
+              revealDelay: 0.12,
+              tweenLength: false,
+            },
+            ease: CustomEase ? "heroKineticEase" : "power3.out",
+          },
+          index * 0.01,
+        );
+      });
+    }
+
+    function animateRow(row) {
+      if (prefersReducedMotion || !SplitText) return;
+      const split = splits.get(row);
+      if (!split) return;
+      lettersTimeline?.kill();
+      lettersTimeline = gsap.timeline();
+      lettersTimeline.fromTo(
+        split.chars,
+        { yPercent: 120, opacity: 0 },
+        {
+          duration: 0.95,
+          yPercent: 0,
+          opacity: 1,
+          ease: CustomEase ? "heroKineticEase" : "expo.out",
+          stagger: 0.04,
+        },
+      );
+    }
+
+    function activateRow(row) {
+      const rowId = row.getAttribute("data-kinetic-row");
+      if (!rowId || activeRowId === rowId) {
+        clearTimeout(resetHandle);
+        return;
+      }
+      activeRowId = rowId;
+      clearTimeout(resetHandle);
+      rows.forEach((item) => item.classList.toggle("is-active", item === row));
+      switchBackground(rowId);
+      updateWords(rowId);
+      animateRow(row);
+    }
+
+    switchBackground("default");
+    updateWords("default");
+  };
+
+  if (document.fonts && typeof document.fonts.ready?.then === "function") {
+    document.fonts.ready.then(start);
+  } else {
+    start();
+  }
+}
+
 function initHeroParallax() {
   if (heroParallaxInitialized || typeof window === "undefined") return;
   const hero = document.querySelector(".hero");
@@ -2913,6 +3211,7 @@ async function deleteProject(index) {
 document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
   setupModalInteractions();
+  initHeroKineticEffect();
   loadHeroAmbientVideo().catch(() => {});
   scheduleIdle(() => {
     applySectionObserver();
