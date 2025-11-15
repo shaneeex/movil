@@ -28,9 +28,6 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png" />
   <link rel="shortcut icon" href="/favicon/favicon.ico" />
   <link rel="manifest" href="/favicon/site.webmanifest" />
-  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/longsile" />
-  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/thegoodmonolith" />
-  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/pp-neue-montreal" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -89,75 +86,26 @@
     </div>
   </header>
 
-  <section id="hero" class="hero hero--kinetic" aria-label="Crafting Visual Experiences">
-    <div class="sr-only">
-      <h1>Crafting Visual Experiences</h1>
-      <p>Bold signs. Bigger impact.</p>
-      <a href="#projects">Explore Projects</a>
+  <section id="hero" class="hero">
+    <div class="hero-background" aria-hidden="true">
+      <div class="hero-video-layer hero-video--empty" data-hero-video data-depth="0.06">
+        <video
+          id="heroAmbientVideo"
+          muted
+          loop
+          playsinline
+          preload="none"
+          poster="/static/default-video-thumb.jpg"
+          aria-hidden="true">
+        </video>
+        <div class="hero-video-overlay"></div>
+        <div class="hero-video-glow"></div>
+      </div>
+      <div class="hero-stripe hero-stripe--one" data-depth="0.1"></div>
+      <div class="hero-stripe hero-stripe--two" data-depth="-0.04"></div>
+      <div class="hero-stripe hero-stripe--three" data-depth="0.14"></div>
     </div>
-    <div class="hero-kinetic" aria-hidden="true">
-      <div class="hero-kinetic__frame"></div>
-      <div class="hero-kinetic__bg hero-kinetic__bg--default" data-kinetic-bg="default"></div>
-      <div class="hero-kinetic__bg hero-kinetic__bg--crafting" data-kinetic-bg="crafting"></div>
-      <div class="hero-kinetic__bg hero-kinetic__bg--visual" data-kinetic-bg="visual"></div>
-      <div class="hero-kinetic__bg hero-kinetic__bg--experiences" data-kinetic-bg="experiences"></div>
-      <div class="hero-kinetic__gradient"></div>
-      <div class="hero-kinetic__text-grid">
-        <span class="hero-kinetic__grid-word" style="top:6%; left:8%;" data-kinetic-word="CRAFTING">CRAFTING</span>
-        <span class="hero-kinetic__grid-word" style="top:8%; left:32%;" data-kinetic-word="VISUAL">VISUAL</span>
-        <span class="hero-kinetic__grid-word" style="top:6%; left:62%;" data-kinetic-word="EXPERIENCES">EXPERIENCES</span>
-        <span class="hero-kinetic__grid-word" style="top:12%; left:14%;" data-kinetic-word="BOLD">BOLD</span>
-        <span class="hero-kinetic__grid-word" style="top:15%; left:44%;" data-kinetic-word="SIGNAGE">SIGNAGE</span>
-        <span class="hero-kinetic__grid-word" style="top:12%; right:12%;" data-kinetic-word="IMPACT">IMPACT</span>
-
-        <span class="hero-kinetic__grid-word" style="top:22%; left:6%;" data-kinetic-word="LIGHT">LIGHT</span>
-        <span class="hero-kinetic__grid-word" style="top:22%; left:24%;" data-kinetic-word="MOTION">MOTION</span>
-        <span class="hero-kinetic__grid-word" style="top:22%; left:45%;" data-kinetic-word="DISPLAY">DISPLAY</span>
-        <span class="hero-kinetic__grid-word" style="top:22%; right:6%;" data-kinetic-word="STORY">STORY</span>
-
-        <span class="hero-kinetic__grid-word" style="top:34%; left:10%;" data-kinetic-word="IMMERSIVE">IMMERSIVE</span>
-        <span class="hero-kinetic__grid-word" style="top:34%; left:35%;" data-kinetic-word="DETAILS">DETAILS</span>
-        <span class="hero-kinetic__grid-word" style="top:34%; left:60%;" data-kinetic-word="CUSTOM">CUSTOM</span>
-        <span class="hero-kinetic__grid-word" style="top:34%; right:10%;" data-kinetic-word="DIGITAL">DIGITAL</span>
-
-        <span class="hero-kinetic__grid-word" style="top:56%; left:8%;" data-kinetic-word="MALDIVES">MALDIVES</span>
-        <span class="hero-kinetic__grid-word" style="top:56%; left:33%;" data-kinetic-word="BRAND">BRAND</span>
-        <span class="hero-kinetic__grid-word" style="top:56%; left:58%;" data-kinetic-word="SCENES">SCENES</span>
-        <span class="hero-kinetic__grid-word" style="top:56%; right:8%;" data-kinetic-word="LED">LED</span>
-
-        <span class="hero-kinetic__grid-word" style="top:78%; left:14%;" data-kinetic-word="CRAFTING-2">CRAFTING</span>
-        <span class="hero-kinetic__grid-word" style="top:78%; left:38%;" data-kinetic-word="VISUAL-2">VISUAL</span>
-        <span class="hero-kinetic__grid-word" style="top:78%; left:64%;" data-kinetic-word="EXPERIENCES-2">EXPERIENCES</span>
-        <span class="hero-kinetic__grid-word" style="top:85%; left:48%;" data-kinetic-word="STUDIOS">STUDIOS</span>
-      </div>
-      <div class="hero-kinetic__rows">
-        <button class="hero-kinetic__row" type="button" data-kinetic-row="crafting">
-          <span class="hero-kinetic__row-text" data-text="Crafting">Crafting</span>
-        </button>
-        <button class="hero-kinetic__row" type="button" data-kinetic-row="visual">
-          <span class="hero-kinetic__row-text" data-text="Visual">Visual</span>
-        </button>
-        <button class="hero-kinetic__row" type="button" data-kinetic-row="experiences">
-          <span class="hero-kinetic__row-text" data-text="Experiences">Experiences</span>
-        </button>
-      </div>
-      <div class="hero-kinetic__type">
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-        <div class="hero-kinetic__type-line">crafting visual experiences</div>
-      </div>
-    </div>
-    <div class="hero-content hero-content--overlay">
-      <p class="section-eyebrow">Movil Studio</p>
+    <div class="hero-content">
       <h1 id="heroText">
         <span class="hero-text-inner" data-text="Crafting Visual Experiences">Crafting Visual Experiences</span>
       </h1>
@@ -365,10 +313,6 @@
       });
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/CustomEase.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrambleTextPlugin.min.js" defer></script>
   <script src="script.js" defer></script>
 </body>
 </html>
