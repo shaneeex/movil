@@ -43,6 +43,77 @@ const PROJECTS_CACHE_TTL = 30 * 1000;
 const HERO_VIDEO_CACHE_TTL = 60 * 1000;
 let heroVideoCache = null;
 let heroVideoCacheTime = 0;
+const HERO_VIDEO_DESKTOP_DEFAULT = { x: 50, y: 50, zoom: 1 };
+const HERO_VIDEO_MOBILE_DEFAULT = { x: 50, y: 35, zoom: 1.05 };
+let adminHeroVideoState = null;
+
+function clampNumber(value, min, max) {
+  if (!Number.isFinite(value)) return null;
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
+}
+
+function buildHeroVideoPosition(display = {}, defaults) {
+  const x = clampNumber(Number(display?.x), 0, 100);
+  const y = clampNumber(Number(display?.y), 0, 100);
+  const zoom = clampNumber(Number(display?.zoom), 0.8, 2.2);
+  return {
+    x: x ?? defaults.x,
+    y: y ?? defaults.y,
+    zoom: zoom ?? defaults.zoom,
+  };
+}
+
+function getHeroVideoDisplay(heroVideo) {
+  const display = heroVideo?.display || {};
+  return {
+    desktop: buildHeroVideoPosition(display.desktop, HERO_VIDEO_DESKTOP_DEFAULT),
+    mobile: buildHeroVideoPosition(display.mobile, HERO_VIDEO_MOBILE_DEFAULT),
+  };
+}
+
+function applyHeroVideoCssVars(video, heroVideo, fallbacks = {}) {
+  if (!video) return;
+  if (!heroVideo) {
+    clearHeroVideoCssVars(video);
+    if (fallbacks.mobilePosition) {
+      video.style.setProperty("--hero-video-mobile-position", fallbacks.mobilePosition);
+    }
+    if (fallbacks.mobileScale) {
+      video.style.setProperty("--hero-video-mobile-scale", String(fallbacks.mobileScale));
+    }
+    return;
+  }
+  const { desktop, mobile } = getHeroVideoDisplay(heroVideo);
+  const desktopPosition = `${desktop.x}% ${desktop.y}%`;
+  video.style.setProperty("--hero-video-desktop-position", desktopPosition);
+  video.style.setProperty("--hero-video-desktop-scale", String(desktop.zoom ?? 1));
+
+  const mobilePosition = `${mobile.x}% ${mobile.y}%`;
+  video.style.setProperty("--hero-video-mobile-position", mobilePosition);
+  video.style.setProperty("--hero-video-mobile-scale", String(mobile.zoom ?? HERO_VIDEO_MOBILE_DEFAULT.zoom));
+}
+
+function clearHeroVideoCssVars(video) {
+  if (!video) return;
+  ["--hero-video-desktop-position", "--hero-video-desktop-scale", "--hero-video-mobile-position", "--hero-video-mobile-scale"].forEach((prop) =>
+    video.style.removeProperty(prop),
+  );
+}
+
+function applyHeroVideoPreviewStyles(video, heroVideo) {
+  if (!video) return;
+  if (!heroVideo) {
+    video.style.removeProperty("object-position");
+    video.style.removeProperty("transform");
+    return;
+  }
+  const { desktop } = getHeroVideoDisplay(heroVideo);
+  video.style.objectFit = "cover";
+  video.style.objectPosition = `${desktop.x}% ${desktop.y}%`;
+  video.style.transform = `scale(${desktop.zoom || 1})`;
+}
 
 if (typeof window !== "undefined") {
   setupProjectsSync();
@@ -885,7 +956,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   if (!shell) return null;
   const video = shell.querySelector("video");
   if (!video) return null;
-  const mobilePosition = shell.getAttribute("data-mobile-position");
+  const mobilePositionFallback = shell.getAttribute("data-mobile-position") || "";
   let heroVideo = payload;
   if (!heroVideo) {
     heroVideo = await fetchHeroVideo(force);
@@ -900,6 +971,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
         /* ignore */
       }
     }
+    clearHeroVideoCssVars(video);
     return null;
   }
   shell.classList.remove("hero-video--empty");
@@ -918,11 +990,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   video.loop = true;
   video.autoplay = true;
   video.setAttribute("playsinline", "true");
-  if (mobilePosition) {
-    video.style.setProperty("--hero-video-mobile-position", mobilePosition);
-  } else {
-    video.style.removeProperty("--hero-video-mobile-position");
-  }
+  applyHeroVideoCssVars(video, heroVideo, { mobilePosition: mobilePositionFallback });
   const playPromise = video.play();
   if (playPromise && typeof playPromise.catch === "function") {
     playPromise.catch(() => {});
@@ -1762,6 +1830,105 @@ function setHeroVideoUploading(isUploading) {
   }
 }
 
+function populateHeroDisplayForm(heroVideo) {
+  const fieldset = $id("heroVideoDisplayFieldset");
+  const saveBtn = $id("heroDisplaySaveBtn");
+  const desktop = heroVideo?.display?.desktop || HERO_VIDEO_DESKTOP_DEFAULT;
+  const mobile = heroVideo?.display?.mobile || HERO_VIDEO_MOBILE_DEFAULT;
+  const hasVideo = Boolean(heroVideo?.url);
+  ["heroDesktopX", "heroDesktopY", "heroDesktopZoom", "heroMobileX", "heroMobileY", "heroMobileZoom"].forEach((id) => {
+    const input = $id(id);
+    if (!input) return;
+    const value =
+      id === "heroDesktopX"
+        ? desktop.x
+        : id === "heroDesktopY"
+          ? desktop.y
+          : id === "heroDesktopZoom"
+            ? desktop.zoom
+            : id === "heroMobileX"
+              ? mobile.x
+              : id === "heroMobileY"
+                ? mobile.y
+                : mobile.zoom;
+    input.value = value;
+  });
+  if (fieldset) fieldset.disabled = !hasVideo;
+  if (saveBtn) saveBtn.disabled = !hasVideo;
+}
+
+function getHeroDisplayValuesFromForm() {
+  const read = (id, fallback, min, max) => {
+    const input = $id(id);
+    if (!input) return fallback;
+    const parsed = Number.parseFloat(input.value);
+    const clamped = clampNumber(parsed, min, max);
+    return clamped ?? fallback;
+  };
+  return {
+    desktop: {
+      x: read("heroDesktopX", HERO_VIDEO_DESKTOP_DEFAULT.x, 0, 100),
+      y: read("heroDesktopY", HERO_VIDEO_DESKTOP_DEFAULT.y, 0, 100),
+      zoom: read("heroDesktopZoom", HERO_VIDEO_DESKTOP_DEFAULT.zoom, 0.8, 2.2),
+    },
+    mobile: {
+      x: read("heroMobileX", HERO_VIDEO_MOBILE_DEFAULT.x, 0, 100),
+      y: read("heroMobileY", HERO_VIDEO_MOBILE_DEFAULT.y, 0, 100),
+      zoom: read("heroMobileZoom", HERO_VIDEO_MOBILE_DEFAULT.zoom, 0.8, 2.2),
+    },
+  };
+}
+
+function setHeroDisplaySaving(isSaving) {
+  const saveBtn = $id("heroDisplaySaveBtn");
+  if (!saveBtn) return;
+  if (isSaving) {
+    saveBtn.dataset.prevDisabled = saveBtn.disabled ? "1" : "";
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+  } else {
+    if ("prevDisabled" in saveBtn.dataset) {
+      saveBtn.disabled = saveBtn.dataset.prevDisabled === "1";
+      delete saveBtn.dataset.prevDisabled;
+    }
+    saveBtn.textContent = "Save framing";
+  }
+}
+
+async function handleHeroDisplayFormSubmit(event) {
+  event.preventDefault();
+  if (!adminHeroVideoState?.url) {
+    showAdminToast("Upload a hero loop before adjusting framing.", "error");
+    return;
+  }
+  const display = getHeroDisplayValuesFromForm();
+  const heroVideoPayload = { ...adminHeroVideoState, display };
+  try {
+    setHeroDisplaySaving(true);
+    const res = await fetch("/api/admin/hero-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ heroVideo: heroVideoPayload }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Save failed (${res.status})`);
+    }
+    adminHeroVideoState = data.heroVideo || heroVideoPayload;
+    showAdminToast("Framing updated.", "success");
+    populateHeroDisplayForm(adminHeroVideoState);
+    applyHeroVideoPreviewStyles($id("heroVideoPreviewPlayer"), adminHeroVideoState);
+    heroVideoCache = adminHeroVideoState;
+    heroVideoCacheTime = Date.now();
+    await loadHeroAmbientVideo({ payload: adminHeroVideoState });
+  } catch (err) {
+    console.error("Hero display save failed:", err);
+    showAdminToast(err?.message || "Unable to save framing.", "error");
+  } finally {
+    setHeroDisplaySaving(false);
+  }
+}
+
 async function refreshAdminHeroVideo(payload) {
   const preview = $id("heroVideoPreviewPlayer");
   const empty = $id("heroVideoEmptyState");
@@ -1783,6 +1950,8 @@ async function refreshAdminHeroVideo(payload) {
     }
   }
   if (!heroVideo || !heroVideo.url) {
+    adminHeroVideoState = null;
+    populateHeroDisplayForm(null);
     if (status) status.textContent = "No hero loop uploaded yet.";
     if (updated) updated.textContent = "";
     empty.hidden = false;
@@ -1792,8 +1961,10 @@ async function refreshAdminHeroVideo(payload) {
     } catch {
       /* ignore */
     }
+    applyHeroVideoPreviewStyles(preview, null);
     return null;
   }
+  adminHeroVideoState = heroVideo;
   empty.hidden = true;
   if (status) status.textContent = heroVideo.originalFilename || "Uploaded video";
   if (updated) {
@@ -1813,6 +1984,8 @@ async function refreshAdminHeroVideo(payload) {
     }
   }
   preview.play().catch(() => {});
+  applyHeroVideoPreviewStyles(preview, heroVideo);
+  populateHeroDisplayForm(heroVideo);
   return heroVideo;
 }
 
@@ -1845,6 +2018,8 @@ async function handleHeroVideoUpload(file) {
     showAdminToast("Hero background updated.", "success");
     heroVideoCache = data.heroVideo || null;
     heroVideoCacheTime = Date.now();
+    adminHeroVideoState = data.heroVideo || null;
+    populateHeroDisplayForm(adminHeroVideoState);
     await refreshAdminHeroVideo(data.heroVideo);
     await loadHeroAmbientVideo({ payload: data.heroVideo });
   } catch (err) {
@@ -1895,6 +2070,8 @@ async function initAdminHeroLoopPanel() {
     target.value = "";
   });
   clearBtn?.addEventListener("click", () => handleHeroVideoClear());
+  const displayForm = $id("heroVideoDisplayForm");
+  displayForm?.addEventListener("submit", handleHeroDisplayFormSubmit);
 }
 
 function initUploadFormToggle() {

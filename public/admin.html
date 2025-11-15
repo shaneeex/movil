@@ -652,6 +652,47 @@
       transition: width 0.2s ease;
     }
 
+    .hero-display-controls {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.02);
+      padding: clamp(14px, 3vw, 20px);
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-display-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .hero-display-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hero-display-field label {
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .hero-display-field input {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 8px 10px;
+      color: var(--text);
+    }
+
+    .hero-display-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
     .modal {
       display: none;
       position: fixed;
@@ -881,6 +922,43 @@
               <div class="hero-video-progress-fill" id="heroVideoProgressFill"></div>
             </div>
           </div>
+        </div>
+        <div class="hero-display-controls">
+          <h3>Framing controls</h3>
+          <form id="heroVideoDisplayForm">
+            <fieldset id="heroVideoDisplayFieldset">
+              <div class="hero-display-grid">
+                <div class="hero-display-field">
+                  <label for="heroDesktopX">Desktop X (%)</label>
+                  <input type="number" id="heroDesktopX" name="desktopX" min="0" max="100" step="1" value="50" />
+                </div>
+                <div class="hero-display-field">
+                  <label for="heroDesktopY">Desktop Y (%)</label>
+                  <input type="number" id="heroDesktopY" name="desktopY" min="0" max="100" step="1" value="50" />
+                </div>
+                <div class="hero-display-field">
+                  <label for="heroDesktopZoom">Desktop Zoom</label>
+                  <input type="number" id="heroDesktopZoom" name="desktopZoom" min="0.8" max="2.2" step="0.05" value="1" />
+                </div>
+                <div class="hero-display-field">
+                  <label for="heroMobileX">Mobile X (%)</label>
+                  <input type="number" id="heroMobileX" name="mobileX" min="0" max="100" step="1" value="50" />
+                </div>
+                <div class="hero-display-field">
+                  <label for="heroMobileY">Mobile Y (%)</label>
+                  <input type="number" id="heroMobileY" name="mobileY" min="0" max="100" step="1" value="35" />
+                </div>
+                <div class="hero-display-field">
+                  <label for="heroMobileZoom">Mobile Zoom</label>
+                  <input type="number" id="heroMobileZoom" name="mobileZoom" min="0.8" max="2.2" step="0.05" value="1.05" />
+                </div>
+              </div>
+              <div class="hero-display-actions">
+                <button type="submit" class="admin-btn" id="heroDisplaySaveBtn">Save framing</button>
+              </div>
+            </fieldset>
+            <p class="muted">Adjust the focus to control how the loop is cropped on desktop and mobile.</p>
+          </form>
         </div>
       </section>
 
