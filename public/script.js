@@ -885,6 +885,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   if (!shell) return null;
   const video = shell.querySelector("video");
   if (!video) return null;
+  const mobilePosition = shell.getAttribute("data-mobile-position");
   let heroVideo = payload;
   if (!heroVideo) {
     heroVideo = await fetchHeroVideo(force);
@@ -917,6 +918,11 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   video.loop = true;
   video.autoplay = true;
   video.setAttribute("playsinline", "true");
+  if (mobilePosition) {
+    video.style.setProperty("--hero-video-mobile-position", mobilePosition);
+  } else {
+    video.style.removeProperty("--hero-video-mobile-position");
+  }
   const playPromise = video.play();
   if (playPromise && typeof playPromise.catch === "function") {
     playPromise.catch(() => {});
