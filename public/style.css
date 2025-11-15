@@ -1389,15 +1389,15 @@ header .container {
   background-image: url("https://assets.codepen.io/7558/wave-bg-001.webp");
 }
 
-.hero-kinetic__bg--focus {
+.hero-kinetic__bg--crafting {
   background-image: url("https://assets.codepen.io/7558/wave-bg-002.webp");
 }
 
-.hero-kinetic__bg--presence {
+.hero-kinetic__bg--visual {
   background-image: url("https://assets.codepen.io/7558/wave-bg-003.webp");
 }
 
-.hero-kinetic__bg--feel {
+.hero-kinetic__bg--experiences {
   background-image: url("https://assets.codepen.io/7558/wave-bg-004.webp");
 }
 
@@ -1493,23 +1493,6 @@ header .container {
   opacity: 0.05;
   letter-spacing: 0.08em;
   white-space: nowrap;
-}
-
-.hero--kinetic .hero-content {
-  margin-top: clamp(1.5rem, 4vw, 3rem);
-  text-align: center;
-}
-
-.hero--kinetic .hero-content h1 {
-  color: #f5f6fa;
-}
-
-.hero--kinetic .hero-subtitle {
-  color: rgba(245, 246, 248, 0.85);
-}
-
-.hero--kinetic .btn {
-  margin-top: 1rem;
 }
 
 @media (max-width: 1024px) {
