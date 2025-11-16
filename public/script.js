@@ -45,8 +45,11 @@ let heroVideoCache = null;
 let heroVideoCacheTime = 0;
 const HERO_VIDEO_DESKTOP_DEFAULT = { x: 50, y: 50, zoom: 1 };
 const HERO_VIDEO_MOBILE_DEFAULT = { x: 50, y: 35, zoom: 1.05 };
-const HERO_OVERLAY_MODES = ["aurora", "ember", "midnight", "prism"];
+const HERO_OVERLAY_MODES = ["aurora", "ember", "midnight", "prism", "nebula", "lumen", "noir"];
 const HERO_OVERLAY_DEFAULT = HERO_OVERLAY_MODES[0];
+const HERO_OVERLAY_OPACITY_MIN = 0.2;
+const HERO_OVERLAY_OPACITY_MAX = 1;
+const HERO_OVERLAY_OPACITY_DEFAULT = 0.85;
 let adminHeroVideoState = null;
 
 function clampNumber(value, min, max) {
@@ -80,14 +83,39 @@ function normalizeHeroOverlayMode(value) {
   return HERO_OVERLAY_MODES.includes(normalized) ? normalized : HERO_OVERLAY_DEFAULT;
 }
 
-function applyHeroOverlayMode(mode) {
+function normalizeHeroOverlayOpacity(value) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return clampNumber(value, HERO_OVERLAY_OPACITY_MIN, HERO_OVERLAY_OPACITY_MAX) ?? HERO_OVERLAY_OPACITY_DEFAULT;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseFloat(value.trim());
+    if (Number.isFinite(parsed)) {
+      return clampNumber(parsed, HERO_OVERLAY_OPACITY_MIN, HERO_OVERLAY_OPACITY_MAX) ?? HERO_OVERLAY_OPACITY_DEFAULT;
+    }
+  }
+  return HERO_OVERLAY_OPACITY_DEFAULT;
+}
+
+function applyHeroOverlaySettings(heroVideo) {
   const overlay = document.querySelector("[data-hero-overlay]");
   if (!overlay) return;
-  const normalized = normalizeHeroOverlayMode(mode);
+  const normalizedMode = heroVideo ? normalizeHeroOverlayMode(heroVideo.overlayMode) : HERO_OVERLAY_DEFAULT;
+  const normalizedOpacity = heroVideo
+    ? normalizeHeroOverlayOpacity(heroVideo.overlayOpacity)
+    : HERO_OVERLAY_OPACITY_DEFAULT;
   HERO_OVERLAY_MODES.forEach((candidate) => {
-    overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalized);
+    overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalizedMode);
   });
-  overlay.dataset.overlayMode = normalized;
+  overlay.dataset.overlayMode = normalizedMode;
+  overlay.style.setProperty("--hero-overlay-opacity", String(normalizedOpacity));
+}
+
+function setHeroOverlayOpacityPreview(value) {
+  const label = document.getElementById("heroOverlayOpacityValue");
+  const normalized = normalizeHeroOverlayOpacity(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
 }
 
 function applyHeroVideoCssVars(video, heroVideo, fallbacks = {}) {
@@ -989,7 +1017,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
       }
     }
     clearHeroVideoCssVars(video);
-    applyHeroOverlayMode(null);
+    applyHeroOverlaySettings(null);
     return null;
   }
   shell.classList.remove("hero-video--empty");
@@ -1009,7 +1037,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   video.autoplay = true;
   video.setAttribute("playsinline", "true");
   applyHeroVideoCssVars(video, heroVideo, { mobilePosition: mobilePositionFallback });
-  applyHeroOverlayMode(heroVideo.overlayMode);
+  applyHeroOverlaySettings(heroVideo);
   const playPromise = video.play();
   if (playPromise && typeof playPromise.catch === "function") {
     playPromise.catch(() => {});
@@ -1876,6 +1904,14 @@ function populateHeroDisplayForm(heroVideo) {
   if (overlaySelect) {
     overlaySelect.value = hasVideo ? normalizeHeroOverlayMode(heroVideo?.overlayMode) : HERO_OVERLAY_DEFAULT;
   }
+  const overlayOpacity = hasVideo
+    ? normalizeHeroOverlayOpacity(heroVideo?.overlayOpacity)
+    : HERO_OVERLAY_OPACITY_DEFAULT;
+  const overlayOpacityInput = $id("heroOverlayOpacity");
+  if (overlayOpacityInput) {
+    overlayOpacityInput.value = overlayOpacity;
+  }
+  setHeroOverlayOpacityPreview(overlayOpacity);
   if (fieldset) fieldset.disabled = !hasVideo;
   if (saveBtn) saveBtn.disabled = !hasVideo;
 }
@@ -1902,6 +1938,12 @@ function getHeroDisplayValuesFromForm() {
       },
     },
     overlayMode: normalizeHeroOverlayMode($id("heroOverlayMode")?.value),
+    overlayOpacity:
+      clampNumber(
+        Number.parseFloat($id("heroOverlayOpacity")?.value ?? ""),
+        HERO_OVERLAY_OPACITY_MIN,
+        HERO_OVERLAY_OPACITY_MAX,
+      ) ?? HERO_OVERLAY_OPACITY_DEFAULT,
   };
 }
 
@@ -1927,8 +1969,8 @@ async function handleHeroDisplayFormSubmit(event) {
     showAdminToast("Upload a hero loop before adjusting framing.", "error");
     return;
   }
-  const { display, overlayMode } = getHeroDisplayValuesFromForm();
-  const heroVideoPayload = { ...adminHeroVideoState, display, overlayMode };
+  const { display, overlayMode, overlayOpacity } = getHeroDisplayValuesFromForm();
+  const heroVideoPayload = { ...adminHeroVideoState, display, overlayMode, overlayOpacity };
   try {
     setHeroDisplaySaving(true);
     const res = await fetch("/api/admin/hero-video", {
@@ -2031,8 +2073,8 @@ async function handleHeroVideoUpload(file) {
     if (media.type !== "video") {
       throw new Error("Hero background must be a video.");
     }
-    const overlayMode = adminHeroVideoState?.overlayMode;
-    const mediaPayload = overlayMode ? { ...media, overlayMode } : media;
+    const { overlayMode, overlayOpacity } = getHeroDisplayValuesFromForm();
+    const mediaPayload = { ...media, overlayMode, overlayOpacity };
     const res = await fetch("/api/admin/hero-video", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2100,6 +2142,10 @@ async function initAdminHeroLoopPanel() {
   clearBtn?.addEventListener("click", () => handleHeroVideoClear());
   const displayForm = $id("heroVideoDisplayForm");
   displayForm?.addEventListener("submit", handleHeroDisplayFormSubmit);
+  const overlayOpacityInput = $id("heroOverlayOpacity");
+  overlayOpacityInput?.addEventListener("input", () => {
+    setHeroOverlayOpacityPreview(overlayOpacityInput.value);
+  });
 }
 
 function initUploadFormToggle() {
