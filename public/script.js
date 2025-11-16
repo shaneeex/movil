@@ -45,6 +45,8 @@ let heroVideoCache = null;
 let heroVideoCacheTime = 0;
 const HERO_VIDEO_DESKTOP_DEFAULT = { x: 50, y: 50, zoom: 1 };
 const HERO_VIDEO_MOBILE_DEFAULT = { x: 50, y: 35, zoom: 1.05 };
+const HERO_OVERLAY_MODES = ["aurora", "ember", "midnight", "prism"];
+const HERO_OVERLAY_DEFAULT = HERO_OVERLAY_MODES[0];
 let adminHeroVideoState = null;
 
 function clampNumber(value, min, max) {
@@ -71,6 +73,21 @@ function getHeroVideoDisplay(heroVideo) {
     desktop: buildHeroVideoPosition(display.desktop, HERO_VIDEO_DESKTOP_DEFAULT),
     mobile: buildHeroVideoPosition(display.mobile, HERO_VIDEO_MOBILE_DEFAULT),
   };
+}
+
+function normalizeHeroOverlayMode(value) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return HERO_OVERLAY_MODES.includes(normalized) ? normalized : HERO_OVERLAY_DEFAULT;
+}
+
+function applyHeroOverlayMode(mode) {
+  const overlay = document.querySelector("[data-hero-overlay]");
+  if (!overlay) return;
+  const normalized = normalizeHeroOverlayMode(mode);
+  HERO_OVERLAY_MODES.forEach((candidate) => {
+    overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalized);
+  });
+  overlay.dataset.overlayMode = normalized;
 }
 
 function applyHeroVideoCssVars(video, heroVideo, fallbacks = {}) {
@@ -972,6 +989,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
       }
     }
     clearHeroVideoCssVars(video);
+    applyHeroOverlayMode(null);
     return null;
   }
   shell.classList.remove("hero-video--empty");
@@ -991,6 +1009,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   video.autoplay = true;
   video.setAttribute("playsinline", "true");
   applyHeroVideoCssVars(video, heroVideo, { mobilePosition: mobilePositionFallback });
+  applyHeroOverlayMode(heroVideo.overlayMode);
   const playPromise = video.play();
   if (playPromise && typeof playPromise.catch === "function") {
     playPromise.catch(() => {});
@@ -1853,6 +1872,10 @@ function populateHeroDisplayForm(heroVideo) {
                 : mobile.zoom;
     input.value = value;
   });
+  const overlaySelect = $id("heroOverlayMode");
+  if (overlaySelect) {
+    overlaySelect.value = hasVideo ? normalizeHeroOverlayMode(heroVideo?.overlayMode) : HERO_OVERLAY_DEFAULT;
+  }
   if (fieldset) fieldset.disabled = !hasVideo;
   if (saveBtn) saveBtn.disabled = !hasVideo;
 }
@@ -1866,16 +1889,19 @@ function getHeroDisplayValuesFromForm() {
     return clamped ?? fallback;
   };
   return {
-    desktop: {
-      x: read("heroDesktopX", HERO_VIDEO_DESKTOP_DEFAULT.x, 0, 100),
-      y: read("heroDesktopY", HERO_VIDEO_DESKTOP_DEFAULT.y, 0, 100),
-      zoom: read("heroDesktopZoom", HERO_VIDEO_DESKTOP_DEFAULT.zoom, 0.8, 2.2),
+    display: {
+      desktop: {
+        x: read("heroDesktopX", HERO_VIDEO_DESKTOP_DEFAULT.x, 0, 100),
+        y: read("heroDesktopY", HERO_VIDEO_DESKTOP_DEFAULT.y, 0, 100),
+        zoom: read("heroDesktopZoom", HERO_VIDEO_DESKTOP_DEFAULT.zoom, 0.8, 2.2),
+      },
+      mobile: {
+        x: read("heroMobileX", HERO_VIDEO_MOBILE_DEFAULT.x, 0, 100),
+        y: read("heroMobileY", HERO_VIDEO_MOBILE_DEFAULT.y, 0, 100),
+        zoom: read("heroMobileZoom", HERO_VIDEO_MOBILE_DEFAULT.zoom, 0.8, 2.2),
+      },
     },
-    mobile: {
-      x: read("heroMobileX", HERO_VIDEO_MOBILE_DEFAULT.x, 0, 100),
-      y: read("heroMobileY", HERO_VIDEO_MOBILE_DEFAULT.y, 0, 100),
-      zoom: read("heroMobileZoom", HERO_VIDEO_MOBILE_DEFAULT.zoom, 0.8, 2.2),
-    },
+    overlayMode: normalizeHeroOverlayMode($id("heroOverlayMode")?.value),
   };
 }
 
@@ -1891,7 +1917,7 @@ function setHeroDisplaySaving(isSaving) {
       saveBtn.disabled = saveBtn.dataset.prevDisabled === "1";
       delete saveBtn.dataset.prevDisabled;
     }
-    saveBtn.textContent = "Save framing";
+    saveBtn.textContent = "Save appearance";
   }
 }
 
@@ -1901,8 +1927,8 @@ async function handleHeroDisplayFormSubmit(event) {
     showAdminToast("Upload a hero loop before adjusting framing.", "error");
     return;
   }
-  const display = getHeroDisplayValuesFromForm();
-  const heroVideoPayload = { ...adminHeroVideoState, display };
+  const { display, overlayMode } = getHeroDisplayValuesFromForm();
+  const heroVideoPayload = { ...adminHeroVideoState, display, overlayMode };
   try {
     setHeroDisplaySaving(true);
     const res = await fetch("/api/admin/hero-video", {
@@ -2005,10 +2031,12 @@ async function handleHeroVideoUpload(file) {
     if (media.type !== "video") {
       throw new Error("Hero background must be a video.");
     }
+    const overlayMode = adminHeroVideoState?.overlayMode;
+    const mediaPayload = overlayMode ? { ...media, overlayMode } : media;
     const res = await fetch("/api/admin/hero-video", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ media }),
+      body: JSON.stringify({ media: mediaPayload }),
     });
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.ok) {

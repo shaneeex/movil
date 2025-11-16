@@ -953,11 +953,20 @@
                   <input type="number" id="heroMobileZoom" name="mobileZoom" min="0.8" max="2.2" step="0.05" value="1.05" />
                 </div>
               </div>
+              <div class="hero-display-field hero-overlay-picker">
+                <label for="heroOverlayMode">Overlay style</label>
+                <select id="heroOverlayMode" name="overlayMode">
+                  <option value="aurora">Aurora Glow</option>
+                  <option value="ember">Ember Wash</option>
+                  <option value="midnight">Midnight Fade</option>
+                  <option value="prism">Prism Veil</option>
+                </select>
+              </div>
               <div class="hero-display-actions">
-                <button type="submit" class="admin-btn" id="heroDisplaySaveBtn">Save framing</button>
+                <button type="submit" class="admin-btn" id="heroDisplaySaveBtn">Save appearance</button>
               </div>
             </fieldset>
-            <p class="muted">Adjust the focus to control how the loop is cropped on desktop and mobile.</p>
+            <p class="muted">Dial in the crop for desktop and mobile, then pick an overlay to match the footage.</p>
           </form>
         </div>
       </section>
