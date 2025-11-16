@@ -50,6 +50,12 @@ const HERO_OVERLAY_DEFAULT = HERO_OVERLAY_MODES[0];
 const HERO_OVERLAY_OPACITY_MIN = 0.2;
 const HERO_OVERLAY_OPACITY_MAX = 1;
 const HERO_OVERLAY_OPACITY_DEFAULT = 0.85;
+const HERO_FOREGROUND_OPACITY_MIN = 0;
+const HERO_FOREGROUND_OPACITY_MAX = 1;
+const HERO_FOREGROUND_OPACITY_DEFAULT = 1;
+const HERO_BACKGROUND_OPACITY_MIN = 0;
+const HERO_BACKGROUND_OPACITY_MAX = 1;
+const HERO_BACKGROUND_OPACITY_DEFAULT = 0.6;
 let adminHeroVideoState = null;
 
 function clampNumber(value, min, max) {
@@ -83,36 +89,86 @@ function normalizeHeroOverlayMode(value) {
   return HERO_OVERLAY_MODES.includes(normalized) ? normalized : HERO_OVERLAY_DEFAULT;
 }
 
-function normalizeHeroOverlayOpacity(value) {
+function normalizeHeroOpacityValue(value, fallback, min, max) {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return clampNumber(value, HERO_OVERLAY_OPACITY_MIN, HERO_OVERLAY_OPACITY_MAX) ?? HERO_OVERLAY_OPACITY_DEFAULT;
+    return clampNumber(value, min, max) ?? fallback;
   }
   if (typeof value === "string" && value.trim()) {
     const parsed = Number.parseFloat(value.trim());
     if (Number.isFinite(parsed)) {
-      return clampNumber(parsed, HERO_OVERLAY_OPACITY_MIN, HERO_OVERLAY_OPACITY_MAX) ?? HERO_OVERLAY_OPACITY_DEFAULT;
+      return clampNumber(parsed, min, max) ?? fallback;
     }
   }
-  return HERO_OVERLAY_OPACITY_DEFAULT;
+  return fallback;
+}
+
+function normalizeHeroOverlayOpacity(value) {
+  return normalizeHeroOpacityValue(value, HERO_OVERLAY_OPACITY_DEFAULT, HERO_OVERLAY_OPACITY_MIN, HERO_OVERLAY_OPACITY_MAX);
+}
+
+function normalizeHeroForegroundOpacity(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_FOREGROUND_OPACITY_DEFAULT,
+    HERO_FOREGROUND_OPACITY_MIN,
+    HERO_FOREGROUND_OPACITY_MAX,
+  );
+}
+
+function normalizeHeroBackgroundOpacity(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_BACKGROUND_OPACITY_DEFAULT,
+    HERO_BACKGROUND_OPACITY_MIN,
+    HERO_BACKGROUND_OPACITY_MAX,
+  );
 }
 
 function applyHeroOverlaySettings(heroVideo) {
   const overlay = document.querySelector("[data-hero-overlay]");
-  if (!overlay) return;
+  const heroSection = document.querySelector(".hero");
   const normalizedMode = heroVideo ? normalizeHeroOverlayMode(heroVideo.overlayMode) : HERO_OVERLAY_DEFAULT;
-  const normalizedOpacity = heroVideo
+  const normalizedOverlayOpacity = heroVideo
     ? normalizeHeroOverlayOpacity(heroVideo.overlayOpacity)
     : HERO_OVERLAY_OPACITY_DEFAULT;
-  HERO_OVERLAY_MODES.forEach((candidate) => {
-    overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalizedMode);
-  });
-  overlay.dataset.overlayMode = normalizedMode;
-  overlay.style.setProperty("--hero-overlay-opacity", String(normalizedOpacity));
+  const normalizedForegroundOpacity = heroVideo
+    ? normalizeHeroForegroundOpacity(heroVideo.foregroundOpacity)
+    : HERO_FOREGROUND_OPACITY_DEFAULT;
+  const normalizedBackgroundOpacity = heroVideo
+    ? normalizeHeroBackgroundOpacity(heroVideo.backgroundOpacity)
+    : HERO_BACKGROUND_OPACITY_DEFAULT;
+  if (overlay) {
+    HERO_OVERLAY_MODES.forEach((candidate) => {
+      overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalizedMode);
+    });
+    overlay.dataset.overlayMode = normalizedMode;
+    overlay.style.setProperty("--hero-overlay-opacity", String(normalizedOverlayOpacity));
+  }
+  if (heroSection) {
+    heroSection.style.setProperty("--hero-foreground-overlay-opacity", String(normalizedForegroundOpacity));
+    heroSection.style.setProperty("--hero-background-overlay-opacity", String(normalizedBackgroundOpacity));
+  }
 }
 
 function setHeroOverlayOpacityPreview(value) {
   const label = document.getElementById("heroOverlayOpacityValue");
   const normalized = normalizeHeroOverlayOpacity(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroForegroundOpacityPreview(value) {
+  const label = document.getElementById("heroForegroundOpacityValue");
+  const normalized = normalizeHeroForegroundOpacity(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroBackgroundOpacityPreview(value) {
+  const label = document.getElementById("heroBackgroundOpacityValue");
+  const normalized = normalizeHeroBackgroundOpacity(value);
   if (label) {
     label.textContent = `${Math.round(normalized * 100)}%`;
   }
@@ -1912,6 +1968,22 @@ function populateHeroDisplayForm(heroVideo) {
     overlayOpacityInput.value = overlayOpacity;
   }
   setHeroOverlayOpacityPreview(overlayOpacity);
+  const foregroundOpacity = hasVideo
+    ? normalizeHeroForegroundOpacity(heroVideo?.foregroundOpacity)
+    : HERO_FOREGROUND_OPACITY_DEFAULT;
+  const backgroundOpacity = hasVideo
+    ? normalizeHeroBackgroundOpacity(heroVideo?.backgroundOpacity)
+    : HERO_BACKGROUND_OPACITY_DEFAULT;
+  const foregroundInput = $id("heroForegroundOpacity");
+  if (foregroundInput) {
+    foregroundInput.value = foregroundOpacity;
+  }
+  const backgroundInput = $id("heroBackgroundOpacity");
+  if (backgroundInput) {
+    backgroundInput.value = backgroundOpacity;
+  }
+  setHeroForegroundOpacityPreview(foregroundOpacity);
+  setHeroBackgroundOpacityPreview(backgroundOpacity);
   if (fieldset) fieldset.disabled = !hasVideo;
   if (saveBtn) saveBtn.disabled = !hasVideo;
 }
@@ -1938,12 +2010,9 @@ function getHeroDisplayValuesFromForm() {
       },
     },
     overlayMode: normalizeHeroOverlayMode($id("heroOverlayMode")?.value),
-    overlayOpacity:
-      clampNumber(
-        Number.parseFloat($id("heroOverlayOpacity")?.value ?? ""),
-        HERO_OVERLAY_OPACITY_MIN,
-        HERO_OVERLAY_OPACITY_MAX,
-      ) ?? HERO_OVERLAY_OPACITY_DEFAULT,
+    overlayOpacity: normalizeHeroOverlayOpacity($id("heroOverlayOpacity")?.value),
+    foregroundOpacity: normalizeHeroForegroundOpacity($id("heroForegroundOpacity")?.value),
+    backgroundOpacity: normalizeHeroBackgroundOpacity($id("heroBackgroundOpacity")?.value),
   };
 }
 
@@ -1969,8 +2038,15 @@ async function handleHeroDisplayFormSubmit(event) {
     showAdminToast("Upload a hero loop before adjusting framing.", "error");
     return;
   }
-  const { display, overlayMode, overlayOpacity } = getHeroDisplayValuesFromForm();
-  const heroVideoPayload = { ...adminHeroVideoState, display, overlayMode, overlayOpacity };
+  const { display, overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity } = getHeroDisplayValuesFromForm();
+  const heroVideoPayload = {
+    ...adminHeroVideoState,
+    display,
+    overlayMode,
+    overlayOpacity,
+    foregroundOpacity,
+    backgroundOpacity,
+  };
   try {
     setHeroDisplaySaving(true);
     const res = await fetch("/api/admin/hero-video", {
@@ -2073,8 +2149,8 @@ async function handleHeroVideoUpload(file) {
     if (media.type !== "video") {
       throw new Error("Hero background must be a video.");
     }
-    const { overlayMode, overlayOpacity } = getHeroDisplayValuesFromForm();
-    const mediaPayload = { ...media, overlayMode, overlayOpacity };
+    const { overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity } = getHeroDisplayValuesFromForm();
+    const mediaPayload = { ...media, overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity };
     const res = await fetch("/api/admin/hero-video", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2145,6 +2221,14 @@ async function initAdminHeroLoopPanel() {
   const overlayOpacityInput = $id("heroOverlayOpacity");
   overlayOpacityInput?.addEventListener("input", () => {
     setHeroOverlayOpacityPreview(overlayOpacityInput.value);
+  });
+  const foregroundOpacityInput = $id("heroForegroundOpacity");
+  foregroundOpacityInput?.addEventListener("input", () => {
+    setHeroForegroundOpacityPreview(foregroundOpacityInput.value);
+  });
+  const backgroundOpacityInput = $id("heroBackgroundOpacity");
+  backgroundOpacityInput?.addEventListener("input", () => {
+    setHeroBackgroundOpacityPreview(backgroundOpacityInput.value);
   });
 }
 
