@@ -314,10 +314,12 @@ function optimizeMediaUrl(url, variant = "grid") {
     const [prefix, suffix] = parsed.pathname.split("/upload/");
     if (!suffix) return parsed.toString();
     if (suffix.startsWith(transform)) {
-      return parsed.toString();
+      const direct = parsed.toString();
+      return direct.replace(/\.hei[cf](?=(\?|$))/i, ".jpg");
     }
     parsed.pathname = `${prefix}/upload/${transform}/${suffix.replace(/^\/+/, "")}`;
-    return parsed.toString();
+    const transformed = parsed.toString();
+    return transformed.replace(/\.hei[cf](?=(\?|$))/i, ".jpg");
   } catch {
     return url;
   }
