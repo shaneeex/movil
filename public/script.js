@@ -1744,14 +1744,18 @@ function renderModal() {
   const poster = getMediaThumb(media);
   const rawMediaUrl = typeof media?.url === "string" ? media.url : "";
   const detailImageSrc = media.type === "image" ? optimizeMediaUrl(rawMediaUrl || poster, "detail") : rawMediaUrl;
+  const fallbackImageSrc = poster || media?.thumbnail || rawMediaUrl || VIDEO_THUMB_FALLBACK;
   const safePoster = escapeHtml(poster || "");
-  const safeImageSrc = escapeHtml(detailImageSrc || poster || "");
+  const safeImageSrc = escapeHtml(detailImageSrc || fallbackImageSrc);
+  const safeFallbackImageSrc = escapeHtml(fallbackImageSrc || VIDEO_THUMB_FALLBACK);
   const safeVideoSrc = escapeHtml(rawMediaUrl || "");
 
   if (media.type === "image") {
     modalMedia.innerHTML = `
       <div class="modal-media-wrapper">
-        <img src="${safeImageSrc}" alt="${escapeHtml(p.title || "Project media")}" class="modal-img modal-media-el">
+        <img src="${safeImageSrc}" data-fallback="${safeFallbackImageSrc}" alt="${escapeHtml(
+          p.title || "Project media",
+        )}" class="modal-img modal-media-el">
       </div>`;
   } else {
     modalMedia.innerHTML = `
@@ -1760,6 +1764,17 @@ function renderModal() {
       </div>`;
   }
   attachFallbacks(modalMedia);
+  const modalImg = modalMedia.querySelector(".modal-img");
+  if (modalImg) {
+    modalImg.addEventListener("error", () => {
+      const fallbackSrc = modalImg.getAttribute("data-fallback");
+      if (fallbackSrc && modalImg.src !== fallbackSrc) {
+        modalImg.src = fallbackSrc;
+      } else if (modalImg.src !== VIDEO_THUMB_FALLBACK) {
+        modalImg.src = VIDEO_THUMB_FALLBACK;
+      }
+    });
+  }
 
   const titleEl = document.getElementById("modalTitle");
   if (titleEl) titleEl.innerText = p.title || "Untitled Project";
