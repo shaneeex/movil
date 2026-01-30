@@ -805,10 +805,13 @@ function preloadProjectMedia(projects, maxProjects = 4) {
     const mediaItems = Array.isArray(project?.media) ? project.media : [];
     mediaItems.slice(0, 3).forEach((media) => {
       if (!media) return;
-      const candidate =
-        media.type === "video"
-          ? media.thumbnail || ""
-          : media.url || media.thumbnail || "";
+      const baseSrc = (media.url || media.thumbnail || "").trim();
+      let candidate = baseSrc;
+      if (media.type === "video") {
+        candidate = media.thumbnail || baseSrc;
+      } else {
+        candidate = optimizeMediaUrl(baseSrc, "detail");
+      }
       if (!candidate || prefetchedAssets.has(candidate)) return;
       prefetchedAssets.add(candidate);
       if (typeof Image === "function") {
@@ -1739,16 +1742,21 @@ function renderModal() {
   const modalMedia = document.getElementById("modalMedia");
   if (!modalMedia) return;
   const poster = getMediaThumb(media);
+  const rawMediaUrl = typeof media?.url === "string" ? media.url : "";
+  const detailImageSrc = media.type === "image" ? optimizeMediaUrl(rawMediaUrl || poster, "detail") : rawMediaUrl;
+  const safePoster = escapeHtml(poster || "");
+  const safeImageSrc = escapeHtml(detailImageSrc || poster || "");
+  const safeVideoSrc = escapeHtml(rawMediaUrl || "");
 
   if (media.type === "image") {
     modalMedia.innerHTML = `
       <div class="modal-media-wrapper">
-        <img src="${media.url}" alt="${p.title}" class="modal-img modal-media-el">
+        <img src="${safeImageSrc}" alt="${escapeHtml(p.title || "Project media")}" class="modal-img modal-media-el">
       </div>`;
   } else {
     modalMedia.innerHTML = `
       <div class="modal-media-wrapper">
-        <video src="${media.url}" poster="${poster}" controls muted playsinline preload="metadata" class="modal-video modal-media-el"></video>
+        <video src="${safeVideoSrc}" poster="${safePoster}" controls muted playsinline preload="metadata" class="modal-video modal-media-el"></video>
       </div>`;
   }
   attachFallbacks(modalMedia);
