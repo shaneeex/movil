@@ -469,7 +469,8 @@
       gap: clamp(16px, 3vw, 24px);
     }
 
-    .projects-grid[data-reorder="1"] {
+    .projects-grid[data-reorder="1"],
+    .projects-grid.projects-grid--reorder {
       grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
       gap: 18px;
     }
@@ -585,12 +586,14 @@
       font-size: 1.2rem;
     }
 
-    .projects-grid[data-reorder="1"] .admin-card-handle {
+    .projects-grid[data-reorder="1"] .admin-card-handle,
+    .projects-grid.projects-grid--reorder .admin-card-handle {
       display: flex;
       border-color: rgba(255, 255, 255, 0.18);
     }
 
-    .projects-grid[data-reorder="1"] .more-btn {
+    .projects-grid[data-reorder="1"] .more-btn,
+    .projects-grid.projects-grid--reorder .more-btn {
       display: none;
     }
 

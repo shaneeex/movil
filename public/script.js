@@ -2541,7 +2541,7 @@ function renderAdminProjectsPage(page = 1) {
     : paginateAdminProjects(display, page);
   const { items, totalPages, currentPage } = paginationData;
   window.adminProjectsCurrentPage = currentPage;
-  container.dataset.reorder = adminReorderMode ? "1" : "0";
+  updateAdminReorderVisualState(container);
 
   container.innerHTML = "";
   if (!items.length) {
@@ -2677,6 +2677,13 @@ function changeAdminProjectsPage(page) {
 
 window.changeAdminProjectsPage = changeAdminProjectsPage;
 
+function updateAdminReorderVisualState(container) {
+  if (!container) return;
+  const isReorder = adminReorderMode ? "1" : "0";
+  container.dataset.reorder = isReorder;
+  container.classList.toggle("projects-grid--reorder", adminReorderMode);
+}
+
 function bindAdminReorderEvents(container) {
   if (!container) return;
   const cards = container.querySelectorAll(".admin-card");
@@ -2777,6 +2784,7 @@ function setAdminReorderMode(enable) {
   if (controls) controls.hidden = !adminReorderMode;
   const saveBtn = $id("adminReorderSave");
   if (saveBtn) saveBtn.disabled = !adminReorderMode || !adminReorderDirty;
+  updateAdminReorderVisualState($id("adminProjects"));
   renderAdminProjectsPage(adminReorderMode ? 1 : window.adminProjectsCurrentPage || 1);
 }
 
