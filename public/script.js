@@ -38,6 +38,9 @@ let pendingProjectsReload = null;
 let adminStatusFilter = "all";
 let adminTagFilter = [];
 let adminAvailableTags = [];
+let adminReorderMode = false;
+let adminReorderDirty = false;
+let adminDraggingCard = null;
 const PROJECTS_CACHE_KEY = "movilstudio:projects-cache";
 const PROJECTS_CACHE_TTL = 30 * 1000;
 const HERO_VIDEO_CACHE_TTL = 60 * 1000;
@@ -2257,6 +2260,28 @@ async function initAdminHeroLoopPanel() {
   });
 }
 
+function initAdminHeaderScroll() {
+  const header = document.querySelector(".admin-headline");
+  if (!header || header.dataset.scrollBound === "1") return;
+  header.dataset.scrollBound = "1";
+  const computeThreshold = () => Math.max(48, header.offsetHeight * 0.45);
+  let threshold = computeThreshold();
+  let compact = false;
+  const apply = () => {
+    const shouldCompact = window.scrollY > threshold;
+    if (shouldCompact !== compact) {
+      compact = shouldCompact;
+      header.classList.toggle("admin-headline--compact", shouldCompact);
+    }
+  };
+  window.addEventListener("scroll", apply, { passive: true });
+  window.addEventListener("resize", () => {
+    threshold = computeThreshold();
+    apply();
+  });
+  apply();
+}
+
 function initUploadFormToggle() {
   const wrapper = $id("uploadFormWrapper");
   const toggle = $id("toggleUploadPanel");
@@ -2532,8 +2557,12 @@ function renderAdminProjectsPage(page = 1) {
   if (!container || !pagination) return;
 
   const display = Array.isArray(window.adminProjectsDisplay) ? window.adminProjectsDisplay : [];
-  const { items, totalPages, currentPage } = paginateAdminProjects(display, page);
+  const paginationData = adminReorderMode
+    ? { items: display, totalPages: 1, currentPage: 1 }
+    : paginateAdminProjects(display, page);
+  const { items, totalPages, currentPage } = paginationData;
   window.adminProjectsCurrentPage = currentPage;
+  container.dataset.reorder = adminReorderMode ? "1" : "0";
 
   container.innerHTML = "";
   if (!items.length) {
@@ -2577,7 +2606,8 @@ function renderAdminProjectsPage(page = 1) {
     container.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" data-index="${originalIndex}" data-spotlight="${isSpotlight}" data-status="${status}">
+      <div class="${cardClass}" data-index="${originalIndex}" data-spotlight="${isSpotlight}" data-status="${status}" data-order="${Number.isFinite(project.order) ? project.order : ""}">
+        <button class="admin-card-handle" type="button" aria-hidden="true">&#8801;</button>
         ${mediaMarkup}
         <div class="admin-info">
           <div class="admin-title">
@@ -2605,11 +2635,19 @@ function renderAdminProjectsPage(page = 1) {
   });
 
   attachFallbacks(container);
+  if (adminReorderMode) {
+    bindAdminReorderEvents(container);
+  }
   renderAdminPagination(pagination, totalPages, currentPage);
 }
 
 function renderAdminPagination(container, totalPages, currentPage) {
   if (!container) return;
+  if (adminReorderMode) {
+    container.innerHTML = "";
+    container.style.display = "none";
+    return;
+  }
   if (totalPages <= 1) {
     container.innerHTML = "";
     container.style.display = "none";
@@ -2659,6 +2697,156 @@ function changeAdminProjectsPage(page) {
 }
 
 window.changeAdminProjectsPage = changeAdminProjectsPage;
+
+function bindAdminReorderEvents(container) {
+  if (!container) return;
+  const cards = container.querySelectorAll(".admin-card");
+  cards.forEach((card) => {
+    card.draggable = true;
+    if (card.dataset.dragBound === "1") return;
+    card.dataset.dragBound = "1";
+    card.addEventListener("dragstart", handleAdminCardDragStart);
+    card.addEventListener("dragover", handleAdminCardDragOver);
+    card.addEventListener("drop", handleAdminCardDrop);
+    card.addEventListener("dragend", handleAdminCardDragEnd);
+  });
+}
+
+function handleAdminCardDragStart(event) {
+  if (!adminReorderMode) return;
+  adminDraggingCard = event.currentTarget;
+  adminDraggingCard.classList.add("dragging");
+  event.dataTransfer.effectAllowed = "move";
+  try {
+    event.dataTransfer.setData("text/plain", adminDraggingCard.dataset.index || "");
+  } catch {
+    /* ignore */
+  }
+}
+
+function handleAdminCardDragOver(event) {
+  if (!adminReorderMode || !adminDraggingCard) return;
+  event.preventDefault();
+  const target = event.currentTarget;
+  if (target === adminDraggingCard) return;
+  const container = target.parentElement;
+  const rect = target.getBoundingClientRect();
+  const after = event.clientY > rect.top + rect.height / 2;
+  if (after) {
+    container.insertBefore(adminDraggingCard, target.nextSibling);
+  } else {
+    container.insertBefore(adminDraggingCard, target);
+  }
+}
+
+function handleAdminCardDrop(event) {
+  if (!adminReorderMode) return;
+  event.preventDefault();
+  updateAdminReorderState();
+}
+
+function handleAdminCardDragEnd() {
+  if (adminDraggingCard) {
+    adminDraggingCard.classList.remove("dragging");
+    adminDraggingCard = null;
+  }
+}
+
+function updateAdminReorderState() {
+  const container = $id("adminProjects");
+  if (!container) return;
+  const ids = Array.from(container.querySelectorAll(".admin-card")).map((card) =>
+    Number(card.dataset.index),
+  );
+  const lookup = new Map();
+  window.adminProjectsDisplay.forEach((project) => {
+    lookup.set(project.__idx, project);
+  });
+  const reordered = ids.map((id) => lookup.get(id)).filter(Boolean);
+  if (reordered.length !== lookup.size) return;
+  window.adminProjectsDisplay = reordered;
+  adminReorderDirty = true;
+  const saveBtn = $id("adminReorderSave");
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+function setAdminReorderMode(enable) {
+  adminReorderMode = Boolean(enable);
+  if (!adminReorderMode) {
+    adminReorderDirty = false;
+  }
+  const toggleBtn = $id("toggleReorderBtn");
+  if (toggleBtn) {
+    toggleBtn.textContent = adminReorderMode ? "Exit Reorder" : "Reorder";
+  }
+  const controls = $id("adminReorderControls");
+  if (controls) controls.hidden = !adminReorderMode;
+  const saveBtn = $id("adminReorderSave");
+  if (saveBtn) saveBtn.disabled = !adminReorderMode || !adminReorderDirty;
+  renderAdminProjectsPage(adminReorderMode ? 1 : window.adminProjectsCurrentPage || 1);
+}
+
+function handleAdminReorderCancel() {
+  if (adminReorderDirty && !window.confirm("Discard unsaved order changes?")) {
+    return;
+  }
+  adminReorderDirty = false;
+  setAdminReorderMode(false);
+  loadAdminProjects(window.adminProjectsCurrentPage || 1);
+}
+
+async function saveAdminReorderChanges() {
+  if (!adminReorderMode) return;
+  if (!adminReorderDirty) {
+    showAdminToast("Drag projects before saving the order.", "info");
+    return;
+  }
+  const saveBtn = $id("adminReorderSave");
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+  }
+  try {
+    const updates = [];
+    window.adminProjectsDisplay.forEach((project, idx) => {
+      const targetOrder = idx + 1;
+      if (project.order !== targetOrder) {
+        updates.push({ index: project.__idx, order: targetOrder });
+      }
+    });
+    if (!updates.length) {
+      adminReorderDirty = false;
+      showAdminToast("Project order unchanged.", "info");
+      setAdminReorderMode(false);
+      return;
+    }
+    for (const update of updates) {
+      const res = await fetch(`/api/projects/${update.index}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: update.order }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || `Order update failed (${res.status})`);
+      }
+    }
+    adminReorderDirty = false;
+    showAdminToast("Project order updated.", "success");
+    setAdminReorderMode(false);
+    await loadAdminProjects(window.adminProjectsCurrentPage || 1);
+    if (document.getElementById("projectsGrid")) {
+      await loadPublicProjects(window.publicProjectsCurrentPage || 1);
+    }
+    broadcastProjectsUpdate({ action: "order" });
+  } catch (err) {
+    console.error("Reorder save error:", err);
+    showAdminToast(err?.message || "Unable to save order.", "error");
+    if (saveBtn) saveBtn.disabled = false;
+  } finally {
+    if (saveBtn) saveBtn.textContent = "Save order";
+  }
+}
 function toggleCardMenu(e, i) {
   e.stopPropagation();
   document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
@@ -2873,7 +3061,7 @@ function renderEditMediaList(project) {
     `;
     wrapper.innerHTML = `
       ${previewMarkup}
-      <button type="button" class="media-remove" aria-label="Toggle remove">&times;</button>
+      <button type="button" class="media-remove" aria-label="Delete media">Delete</button>
       <button type="button" class="media-hero-toggle" data-media-url="${safeUrl}">
         ${isHero ? "Cover Image" : "Set as Cover"}
       </button>
@@ -2899,6 +3087,7 @@ function renderEditMediaList(project) {
         </div>
       </div>
       ${isHero ? "" : '<p class="media-focus-hint">Select this media as the cover to unlock positioning controls.</p>'}
+      <p class="media-remove-note">Marked for deletion. Save changes to confirm.</p>
     `;
     if (isHero) {
       wrapper.classList.add("media-item--hero");
@@ -2926,13 +3115,21 @@ function renderEditMediaList(project) {
         setHeroMediaSelection(media.url);
       }
     };
+    const refreshRemoveUi = () => {
+      if (removeBtn) {
+        removeBtn.textContent = wrapper.classList.contains("marked-remove") ? "Undo delete" : "Delete";
+      }
+    };
     removeBtn?.addEventListener("click", () => {
       if (wrapper.classList.contains("marked-remove")) {
         unmark();
       } else {
+        if (!window.confirm("Remove this media from the project?")) return;
         mark();
       }
+      refreshRemoveUi();
     });
+    refreshRemoveUi();
 
     const heroToggle = wrapper.querySelector(".media-hero-toggle");
     heroToggle?.addEventListener("click", () => {
@@ -3319,7 +3516,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       await ensureAdminSession();
       await initAdminHeroLoopPanel();
       initUploadFormToggle();
+      const reorderBtn = $id("toggleReorderBtn");
+      reorderBtn?.addEventListener("click", () => {
+        if (adminReorderMode) {
+          handleAdminReorderCancel();
+        } else {
+          setAdminReorderMode(true);
+        }
+      });
+      $id("adminReorderCancel")?.addEventListener("click", handleAdminReorderCancel);
+      $id("adminReorderSave")?.addEventListener("click", saveAdminReorderChanges);
       await loadAdminProjects(1);
+      initAdminHeaderScroll();
     } catch (err) {
       console.error(err);
     }

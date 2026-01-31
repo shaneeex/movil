@@ -193,12 +193,34 @@
       gap: 24px;
       flex-wrap: wrap;
       box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+      position: sticky;
+      top: clamp(12px, 3vw, 28px);
+      z-index: 8;
+      backdrop-filter: blur(12px);
+      transition:
+        padding var(--transition),
+        border-radius var(--transition),
+        box-shadow var(--transition),
+        transform var(--transition);
+    }
+
+    .admin-headline--compact {
+      padding: clamp(14px, 2vw, 20px);
+      border-radius: 20px;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+      transform: translateY(-6px) scale(0.985);
     }
 
     .admin-headline h1 {
       margin: 0;
       font-size: clamp(1.7rem, 4vw, 2.4rem);
       letter-spacing: 0.1em;
+      transition: font-size var(--transition);
+    }
+
+    .admin-headline--compact h1 {
+      font-size: clamp(1.3rem, 3vw, 1.9rem);
+      letter-spacing: 0.08em;
     }
 
     .admin-stats-grid {
@@ -206,6 +228,11 @@
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
       min-width: 280px;
+      transition: gap var(--transition);
+    }
+
+    .admin-headline--compact .admin-stats-grid {
+      gap: 10px;
     }
 
     .admin-stat-card {
@@ -215,6 +242,11 @@
       background: rgba(255, 255, 255, 0.02);
       display: grid;
       gap: 6px;
+      transition: padding var(--transition);
+    }
+
+    .admin-headline--compact .admin-stat-card {
+      padding: 10px 14px;
     }
 
     .admin-stat-label {
@@ -227,6 +259,11 @@
     .admin-stat-value {
       font-size: 1.8rem;
       margin: 0;
+      transition: font-size var(--transition);
+    }
+
+    .admin-headline--compact .admin-stat-value {
+      font-size: 1.5rem;
     }
 
     .admin-panel {
@@ -433,10 +470,41 @@
       color: var(--muted);
     }
 
+    .admin-reorder-controls {
+      margin-top: 18px;
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      background: rgba(8, 11, 24, 0.6);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .admin-reorder-controls p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .admin-reorder-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .projects-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: clamp(16px, 3vw, 24px);
+    }
+
+    .projects-grid[data-reorder="1"] {
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+      gap: 18px;
     }
 
     .admin-card {
@@ -526,6 +594,37 @@
     .admin-card--spotlight {
       border-color: rgba(255, 213, 0, 0.5);
       box-shadow: 0 35px 70px rgba(255, 213, 0, 0.12);
+    }
+
+    .admin-card.dragging {
+      opacity: 0.6;
+      border-style: dashed;
+    }
+
+    .admin-card-handle {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px dashed transparent;
+      background: rgba(5, 8, 15, 0.7);
+      color: var(--muted);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      font-size: 1.2rem;
+    }
+
+    .projects-grid[data-reorder="1"] .admin-card-handle {
+      display: flex;
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .projects-grid[data-reorder="1"] .more-btn {
+      display: none;
     }
 
     .admin-spotlight-chip {
@@ -751,6 +850,36 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
       font-size: 0.75rem;
+    }
+
+    .media-item.marked-remove {
+      opacity: 0.55;
+    }
+
+    .media-remove-note {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: var(--danger);
+      margin-left: auto;
+      text-transform: uppercase;
+      display: none;
+    }
+
+    .media-item.marked-remove .media-remove-note {
+      display: block;
+    }
+
+    .media-remove {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 999px;
+      padding: 6px 14px;
+      color: var(--danger);
+      transition: var(--transition);
+    }
+
+    .media-remove:hover {
+      border-color: rgba(255, 107, 107, 0.5);
+      color: #fff;
     }
 
     .toast-stack {
@@ -1066,6 +1195,14 @@
             <div id="adminTagFilters" class="admin-tag-filter"></div>
           </div>
           <button type="button" id="adminResetFilters" class="admin-btn admin-btn--ghost admin-reset-btn">Reset</button>
+          <button type="button" id="toggleReorderBtn" class="admin-btn admin-btn--ghost admin-reset-btn">Reorder</button>
+        </div>
+        <div class="admin-reorder-controls" id="adminReorderControls" hidden>
+          <p>Drag projects to arrange their display order.</p>
+          <div class="admin-reorder-actions">
+            <button type="button" class="admin-btn admin-btn--ghost" id="adminReorderCancel">Cancel</button>
+            <button type="button" class="admin-btn" id="adminReorderSave" disabled>Save order</button>
+          </div>
         </div>
 
         <div id="adminProjects" class="projects-grid"></div>
