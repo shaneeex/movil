@@ -2681,25 +2681,39 @@ function bindAdminReorderEvents(container) {
   if (!container) return;
   const cards = container.querySelectorAll(".admin-card");
   cards.forEach((card) => {
-    card.draggable = true;
     if (card.dataset.dragBound === "1") return;
     card.dataset.dragBound = "1";
-    card.addEventListener("dragstart", handleAdminCardDragStart);
+    card.draggable = true;
+    card.addEventListener("dragstart", (event) => startAdminCardDrag(card, event));
     card.addEventListener("dragover", handleAdminCardDragOver);
     card.addEventListener("drop", handleAdminCardDrop);
     card.addEventListener("dragend", handleAdminCardDragEnd);
+    const handle = card.querySelector(".admin-card-handle");
+    if (handle) {
+      handle.draggable = true;
+      handle.addEventListener("dragstart", (event) => {
+        event.stopPropagation();
+        startAdminCardDrag(card, event);
+      });
+      handle.addEventListener("dragend", (event) => {
+        event.stopPropagation();
+        handleAdminCardDragEnd(event);
+      });
+    }
   });
 }
 
-function handleAdminCardDragStart(event) {
-  if (!adminReorderMode) return;
-  adminDraggingCard = event.currentTarget;
-  adminDraggingCard.classList.add("dragging");
-  event.dataTransfer.effectAllowed = "move";
-  try {
-    event.dataTransfer.setData("text/plain", adminDraggingCard.dataset.index || "");
-  } catch {
-    /* ignore */
+function startAdminCardDrag(card, event) {
+  if (!adminReorderMode || !card) return;
+  adminDraggingCard = card;
+  card.classList.add("dragging");
+  if (event?.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    try {
+      event.dataTransfer.setData("text/plain", card.dataset.index || "");
+    } catch {
+      /* ignore */
+    }
   }
 }
 
