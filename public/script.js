@@ -2681,29 +2681,23 @@ function bindAdminReorderEvents(container) {
   if (!container) return;
   const cards = container.querySelectorAll(".admin-card");
   cards.forEach((card) => {
-    const handle = card.querySelector(".admin-card-handle");
-    if (!handle) return;
-    handle.draggable = true;
-    card.draggable = false;
-    if (handle.dataset.dragBound === "1") return;
-    handle.dataset.dragBound = "1";
+    card.draggable = true;
+    if (card.dataset.dragBound === "1") return;
     card.dataset.dragBound = "1";
-    handle.addEventListener("dragstart", handleAdminCardDragStart);
-    handle.addEventListener("dragend", handleAdminCardDragEnd);
+    card.addEventListener("dragstart", handleAdminCardDragStart);
     card.addEventListener("dragover", handleAdminCardDragOver);
     card.addEventListener("drop", handleAdminCardDrop);
+    card.addEventListener("dragend", handleAdminCardDragEnd);
   });
 }
 
 function handleAdminCardDragStart(event) {
   if (!adminReorderMode) return;
-  const card = event.currentTarget.closest(".admin-card");
-  if (!card) return;
-  adminDraggingCard = card;
-  card.classList.add("dragging");
+  adminDraggingCard = event.currentTarget;
+  adminDraggingCard.classList.add("dragging");
   event.dataTransfer.effectAllowed = "move";
   try {
-    event.dataTransfer.setData("text/plain", card.dataset.index || "");
+    event.dataTransfer.setData("text/plain", adminDraggingCard.dataset.index || "");
   } catch {
     /* ignore */
   }
@@ -2731,7 +2725,7 @@ function handleAdminCardDrop(event) {
 }
 
 function handleAdminCardDragEnd(event) {
-  const card = event.currentTarget.closest(".admin-card") || adminDraggingCard;
+  const card = event.currentTarget || adminDraggingCard;
   if (card) {
     card.classList.remove("dragging");
   }
