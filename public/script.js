@@ -2060,6 +2060,26 @@ function setHeroDisplaySaving(isSaving) {
   }
 }
 
+function initHeroDisplayCollapse() {
+  const toggle = $id("heroDisplayCollapseBtn");
+  const panel = $id("heroDisplayCollapse");
+  if (!toggle || !panel || toggle.dataset.bound === "1") return;
+  toggle.dataset.bound = "1";
+  const setState = (open) => {
+    panel.dataset.open = open ? "true" : "false";
+    panel.hidden = !open;
+    toggle.textContent = open ? "Hide controls" : "Show controls";
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.dataset.open = open ? "true" : "false";
+  };
+  let isOpen = panel.dataset.open !== "false";
+  setState(isOpen);
+  toggle.addEventListener("click", () => {
+    isOpen = !isOpen;
+    setState(isOpen);
+  });
+}
+
 async function handleHeroDisplayFormSubmit(event) {
   event.preventDefault();
   if (!adminHeroVideoState?.url) {
@@ -2258,6 +2278,7 @@ async function initAdminHeroLoopPanel() {
   backgroundOpacityInput?.addEventListener("input", () => {
     setHeroBackgroundOpacityPreview(backgroundOpacityInput.value);
   });
+  initHeroDisplayCollapse();
 }
 
 

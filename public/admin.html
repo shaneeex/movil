@@ -730,6 +730,18 @@
       gap: 12px;
     }
 
+    .hero-display-collapse-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .hero-collapse-toggle {
+      padding: 6px 16px;
+      font-size: 0.68rem;
+    }
+
     .hero-display-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1023,7 +1035,13 @@
           </div>
         </div>
         <div class="hero-display-controls">
-          <h3>Framing controls</h3>
+          <div class="hero-display-collapse-header">
+            <h3>Framing controls</h3>
+            <button type="button" class="admin-btn admin-btn--ghost hero-collapse-toggle" id="heroDisplayCollapseBtn" data-open="true" aria-expanded="true">
+              Hide controls
+            </button>
+          </div>
+          <div id="heroDisplayCollapse" data-open="true">
           <form id="heroVideoDisplayForm">
             <fieldset id="heroVideoDisplayFieldset">
               <div class="hero-display-grid">
@@ -1106,6 +1124,7 @@
             </fieldset>
             <p class="muted">Dial in the crop for desktop and mobile, then pick an overlay to match the footage.</p>
           </form>
+          </div>
         </div>
       </section>
 
