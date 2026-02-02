@@ -1232,17 +1232,14 @@ async function loadPublicProjects(page) {
       p.__displayIndex = displayIndex;
     });
 
-    const spotlightProjects = prioritized.filter((proj) => proj.spotlight);
-    const displayProjects = prioritized.filter((proj) => !proj.spotlight);
-
-    window.publicSpotlightProjects = spotlightProjects;
-    window.publicProjectsCache = displayProjects;
+    window.publicProjectsCache = prioritized;
+    window.publicSpotlightProjects = prioritized.filter((proj) => proj.spotlight);
     if (typeof window.publicProjectsFilter !== "string") {
       window.publicProjectsFilter = "All";
     }
 
     if (window.publicProjectsFilter !== "All") {
-      const hasActive = displayProjects.some(
+      const hasActive = prioritized.some(
         (proj) =>
           (proj.category || DEFAULT_PROJECT_CATEGORY).toLowerCase() ===
           window.publicProjectsFilter.toLowerCase(),
@@ -1252,7 +1249,7 @@ async function loadPublicProjects(page) {
       }
     }
 
-    buildProjectFilters(displayProjects);
+    buildProjectFilters(prioritized);
     preloadProjectMedia(prioritized, 6);
     renderSpotlightSlider();
 
