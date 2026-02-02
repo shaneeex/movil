@@ -6,7 +6,6 @@ import { uploadMediaStream } from "../../lib/media.js";
 import {
   getProjects,
   saveProjects,
-  applySpotlight,
   sanitizeIncomingMediaEntry,
   sanitizeHeroMediaUrl,
   parseProjectOrder,
@@ -35,7 +34,6 @@ export default withErrorHandling(async function handler(req, res) {
   if (contentType.includes("application/json")) {
     const body = await parseJsonBody(req);
     const projects = await getProjects();
-    const shouldSpotlight = parseBoolean(body?.spotlight, false);
     const draftOverride =
       body?.draft !== undefined ? (parseBoolean(body.draft, false) ? "draft" : "published") : undefined;
     const status = normalizeStatus(body?.status ?? draftOverride);
@@ -48,7 +46,6 @@ export default withErrorHandling(async function handler(req, res) {
       return sendJSON(res, 400, { ok: false, error: "At least one media item is required." });
     }
 
-    const spotlightEnabled = status === "published" && shouldSpotlight;
     const order = parseProjectOrder(body?.order ?? body?.displayOrder ?? body?.sort);
 
     const newProject = {
@@ -58,16 +55,12 @@ export default withErrorHandling(async function handler(req, res) {
       client: normalizeClient(body?.client),
       media,
       heroMediaUrl: sanitizeHeroMediaUrl({ media }, body?.heroMediaUrl),
-      spotlight: spotlightEnabled,
       status,
       tags,
       createdAt: new Date().toISOString(),
       order,
     };
     projects.push(newProject);
-    if (spotlightEnabled) {
-      applySpotlight(projects, projects.length - 1, true);
-    }
     await saveProjects(projects);
     return sendJSON(res, 200, { ok: true, project: newProject, size: projects.length });
   }
@@ -77,14 +70,12 @@ export default withErrorHandling(async function handler(req, res) {
   });
 
   const projects = await getProjects();
-  const shouldSpotlight = parseBoolean(fields.spotlight, false);
   const draftOverride =
     fields.draft !== undefined ? (parseBoolean(fields.draft, false) ? "draft" : "published") : undefined;
   const status = normalizeStatus(fields.status ?? draftOverride);
   const tags = normalizeTags(fields.tags);
   const media = Array.isArray(files) ? files : [];
 
-  const spotlightEnabled = status === "published" && shouldSpotlight;
   const order = parseProjectOrder(fields.order ?? fields.displayOrder ?? fields.sort);
 
   const newProject = {
@@ -94,16 +85,12 @@ export default withErrorHandling(async function handler(req, res) {
     client: normalizeClient(fields.client),
     media,
     heroMediaUrl: sanitizeHeroMediaUrl({ media }, fields.heroMediaUrl),
-    spotlight: spotlightEnabled,
     status,
     tags,
     createdAt: new Date().toISOString(),
     order,
   };
   projects.push(newProject);
-  if (spotlightEnabled) {
-    applySpotlight(projects, projects.length - 1, true);
-  }
   await saveProjects(projects);
 
   sendJSON(res, 200, { ok: true, project: newProject, size: projects.length });

@@ -4,7 +4,6 @@ const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
-const MAX_SPOTLIGHT_PROJECTS = 5;
 const prefetchedAssets = new Set();
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const MEDIA_TRANSFORMS = {
@@ -26,7 +25,6 @@ let heroBlendObserver = null;
 let ctaContactObserver = null;
 if (typeof window !== "undefined") {
   window.publicProjectsFilter = window.publicProjectsFilter || "All";
-  window.publicSpotlightProjects = window.publicSpotlightProjects || [];
 }
 
 const PROJECTS_SYNC_STORAGE_KEY = "movilstudio:projects-updated";
@@ -61,9 +59,7 @@ const HERO_FOREGROUND_OPACITY_DEFAULT = 1;
 const HERO_BACKGROUND_OPACITY_MIN = 0;
 const HERO_BACKGROUND_OPACITY_MAX = 1;
 const HERO_BACKGROUND_OPACITY_DEFAULT = 0.6;
-const SPOTLIGHT_AUTOPLAY_INTERVAL = 6000;
 let adminHeroVideoState = null;
-const spotlightSliderState = { index: 0, total: 0, timer: null };
 
 function clampNumber(value, min, max) {
   if (!Number.isFinite(value)) return null;
@@ -1219,7 +1215,6 @@ async function loadPublicProjects(page) {
             ? "draft"
             : "published";
         normalized.tags = parseTagsInput(project.tags || []);
-        normalized.spotlight = normalized.status === "published" && Boolean(project.spotlight);
         return normalized;
       });
 
@@ -1228,12 +1223,10 @@ async function loadPublicProjects(page) {
 
     prioritized.forEach((p, displayIndex) => {
       p.status = (p.status || "published") === "draft" ? "draft" : "published";
-      p.spotlight = Boolean(p.spotlight);
       p.__displayIndex = displayIndex;
     });
 
     window.publicProjectsCache = prioritized;
-    window.publicSpotlightProjects = prioritized.filter((proj) => proj.spotlight);
     if (typeof window.publicProjectsFilter !== "string") {
       window.publicProjectsFilter = "All";
     }
@@ -1251,7 +1244,6 @@ async function loadPublicProjects(page) {
 
     buildProjectFilters(prioritized);
     preloadProjectMedia(prioritized, 6);
-    renderSpotlightSlider();
 
     const filteredCount = getFilteredProjects().length || 0;
     const totalPages = Math.max(1, Math.ceil(filteredCount / PROJECTS_PER_PAGE));
@@ -1304,12 +1296,8 @@ function renderPublicProjectsPage(page = 1) {
         typeof p.__displayIndex === "number" ? p.__displayIndex : offset + idx;
       const sourceIndex = typeof p.__idx === "number" ? p.__idx : displayIndex;
       const delay = Math.min(idx, 6) * 0.07;
-      const isFeatured = Boolean(p.spotlight);
-      const featuredVideo = isFeatured
-        ? mediaItems.find((mediaItem) => mediaItem && mediaItem.type === "video")
-        : null;
       const heroOverride = findHeroMediaCandidate(mediaItems, p.heroMediaUrl);
-      const heroMedia = heroOverride || featuredVideo || firstMedia;
+      const heroMedia = heroOverride || firstMedia;
       if (!heroMedia) return;
 
       const heroThumb = getMediaThumbWithVariant(heroMedia, "hero");
@@ -1322,23 +1310,17 @@ function renderPublicProjectsPage(page = 1) {
         : "";
       const snippetHtml = snippetText ? `<p class="project-card-desc">${escapeHtml(snippetText)}</p>` : "";
       const shareButtonDefault = buildShareButton(displayIndex);
-      const inlineShareButton = isFeatured ? buildShareButton(displayIndex, "project-card-share--inline") : "";
       const altText = escapeHtml(`${p.title || "Project"} showcase`);
       const heroMediaIndex = mediaItems.indexOf(heroMedia);
       const safeMediaIndex = heroMediaIndex >= 0 ? heroMediaIndex : 0;
       const shareId = buildProjectShareId(p, sourceIndex);
       const detailPath = `/p/${shareId}`;
       const mediaCountText = formatMediaCount(mediaItems);
-      const actionsShareMarkup = isFeatured ? "" : shareButtonDefault;
       const focusAttr = buildMediaFocusAttr(heroMedia);
-      const imageAttrs = `loading="lazy" decoding="async" fetchpriority="${isFeatured && idx === 0 ? "high" : "auto"}"`;
+      const imageAttrs = 'loading="lazy" decoding="async" fetchpriority="auto"';
 
     let mediaTag = "";
-    if (featuredVideo) {
-      mediaTag = `
-        <video src="${featuredVideo.url}" poster="${heroThumb}" muted playsinline loop preload="metadata" data-autoplay="1" aria-label="${altText}"${focusAttr}></video>
-      `;
-    } else if (heroMedia.type === "video") {
+    if (heroMedia.type === "video") {
       mediaTag = `
         <div class="video-thumb">
           <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
@@ -1349,8 +1331,7 @@ function renderPublicProjectsPage(page = 1) {
       mediaTag = `<img src="${heroThumb}" alt="${altText}" ${imageAttrs}${focusAttr}>`;
     }
 
-    const badgeHtml = isFeatured ? '<span class="project-card-badge">Spotlight</span>' : "";
-    const cardClass = `project-card ${isFeatured ? "project-card--featured" : ""}`.trim();
+    const cardClass = "project-card";
     grid.insertAdjacentHTML(
       "beforeend",
       `
@@ -1360,8 +1341,6 @@ function renderPublicProjectsPage(page = 1) {
             ${mediaTag}
           </div>
           <div class="project-card-meta">
-            ${inlineShareButton}
-            ${badgeHtml}
             <span class="project-card-category">${categoryText}</span>
             <h3>${titleText}</h3>
             ${clientHtml}
@@ -1370,7 +1349,7 @@ function renderPublicProjectsPage(page = 1) {
         </a>
         <div class="project-card-actions">
           <span class="project-card-count">${mediaCountText}</span>
-          ${actionsShareMarkup}
+          ${shareButtonDefault}
         </div>
       </article>
     `
@@ -1495,155 +1474,6 @@ function openProjectFromHash() {
   if (!Number.isInteger(sourceIndex)) return;
   const shareId = buildProjectShareId(project, sourceIndex);
   window.location.replace(`/p/${shareId}`);
-}
-
-function renderSpotlightSlider() {
-  const section = $id("spotlightSection");
-  const slider = $id("spotlightSlider");
-  const slidesRoot = $id("spotlightSlides");
-  const dotsRoot = $id("spotlightDots");
-  if (!section || !slider || !slidesRoot || !dotsRoot) return;
-
-  const spotlightProjects = (window.publicSpotlightProjects || []).slice(0, MAX_SPOTLIGHT_PROJECTS);
-  if (!spotlightProjects.length) {
-    section.hidden = true;
-    slidesRoot.innerHTML = "";
-    dotsRoot.innerHTML = "";
-    spotlightSliderState.total = 0;
-    stopSpotlightAutoplay();
-    return;
-  }
-
-  section.hidden = false;
-  slidesRoot.innerHTML = spotlightProjects.map(buildSpotlightSlide).join("");
-  dotsRoot.innerHTML = spotlightProjects
-    .map(
-      (_, idx) =>
-        `<button type="button" class="spotlight-dot" data-spotlight-dot="${idx}" aria-label="Go to spotlight ${idx + 1}"></button>`,
-    )
-    .join("");
-  spotlightSliderState.total = spotlightProjects.length;
-  setSpotlightSlide(0);
-  if (spotlightProjects.length > 1) {
-    startSpotlightAutoplay();
-  } else {
-    stopSpotlightAutoplay();
-  }
-}
-
-function buildSpotlightSlide(project, index = 0) {
-  const mediaItems = Array.isArray(project.media) ? project.media : [];
-  const heroMedia = findHeroMediaCandidate(mediaItems, project.heroMediaUrl) || mediaItems[0];
-  if (!heroMedia) return "";
-
-  const heroThumb = getMediaThumbWithVariant(heroMedia, "detail");
-  const titleText = escapeHtml(project.title || "Spotlight Project");
-  const categoryText = escapeHtml(project.category || DEFAULT_PROJECT_CATEGORY);
-  const snippet = getProjectSnippet(project.description || "", 140);
-  const snippetHtml = snippet ? `<p>${escapeHtml(snippet)}</p>` : "";
-  const shareId = buildProjectShareId(project, project.__idx ?? index);
-  const detailPath = `/p/${shareId}`;
-  const altText = escapeHtml(`${project.title || "Project"} spotlight hero`);
-  const focusAttr = buildMediaFocusAttr(heroMedia);
-
-  return `
-    <article class="spotlight-slide" data-slide="${index}">
-      <div class="spotlight-slide__media">
-        <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
-      </div>
-      <div class="spotlight-slide__info">
-        <span class="spotlight-slide__category">${categoryText}</span>
-        <h3>${titleText}</h3>
-        ${snippetHtml}
-        <a class="spotlight-slide__cta" href="${detailPath}">
-          View Project
-          <span aria-hidden="true">&#10140;</span>
-        </a>
-      </div>
-    </article>
-  `;
-}
-
-function setSpotlightSlide(targetIndex) {
-  const slidesRoot = $id("spotlightSlides");
-  if (!slidesRoot) return;
-  const slides = slidesRoot.querySelectorAll(".spotlight-slide");
-  if (!slides.length) return;
-
-  const dotsRoot = $id("spotlightDots");
-  const dots = dotsRoot ? dotsRoot.querySelectorAll(".spotlight-dot") : [];
-  const total = slides.length;
-  const normalized = ((targetIndex % total) + total) % total;
-  spotlightSliderState.index = normalized;
-
-  slides.forEach((slide, idx) => {
-    slide.classList.toggle("is-active", idx === normalized);
-  });
-  dots.forEach((dot, idx) => {
-    dot.classList.toggle("is-active", idx === normalized);
-  });
-
-  const counter = $id("spotlightCounter");
-  if (counter) {
-    counter.textContent = `${normalized + 1} / ${total}`;
-  }
-}
-
-function nextSpotlightSlide() {
-  setSpotlightSlide(spotlightSliderState.index + 1);
-}
-
-function prevSpotlightSlide() {
-  setSpotlightSlide(spotlightSliderState.index - 1);
-}
-
-function startSpotlightAutoplay() {
-  stopSpotlightAutoplay();
-  if (spotlightSliderState.total <= 1) return;
-  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return;
-  }
-  spotlightSliderState.timer = setInterval(nextSpotlightSlide, SPOTLIGHT_AUTOPLAY_INTERVAL);
-}
-
-function stopSpotlightAutoplay() {
-  if (spotlightSliderState.timer) {
-    clearInterval(spotlightSliderState.timer);
-    spotlightSliderState.timer = null;
-  }
-}
-
-function initSpotlightSliderNav() {
-  const prevBtn = document.querySelector("[data-spotlight-prev]");
-  const nextBtn = document.querySelector("[data-spotlight-next]");
-  prevBtn?.addEventListener("click", () => {
-    prevSpotlightSlide();
-    startSpotlightAutoplay();
-  });
-  nextBtn?.addEventListener("click", () => {
-    nextSpotlightSlide();
-    startSpotlightAutoplay();
-  });
-
-  const dotsRoot = $id("spotlightDots");
-  dotsRoot?.addEventListener("click", (event) => {
-    const dot = event.target.closest("[data-spotlight-dot]");
-    if (!dot) return;
-    const idx = Number(dot.dataset.spotlightDot);
-    if (!Number.isFinite(idx)) return;
-    setSpotlightSlide(idx);
-    startSpotlightAutoplay();
-  });
-
-  const slider = $id("spotlightSlider");
-  if (slider) {
-    slider.addEventListener("mouseenter", stopSpotlightAutoplay);
-    slider.addEventListener("mouseleave", () => {
-      if (spotlightSliderState.total > 1) {
-        startSpotlightAutoplay();
-      }
-    });
-  }
 }
 
 async function shareProject(event, projectIndex) {
@@ -2470,24 +2300,12 @@ function initUploadFormToggle() {
 function updateAdminStats(projects = []) {
   const published = projects.filter((p) => (p.status || "published") === "published").length;
   const drafts = projects.length - published;
-  const spotlight = projects.filter((p) => p.spotlight).length;
   const setValue = (id, value) => {
     const el = $id(id);
     if (el) el.textContent = value;
   };
   setValue("statPublished", published);
   setValue("statDrafts", drafts);
-  setValue("statSpotlight", spotlight);
-
-  const limitLabel = $id("adminSpotlightLimit");
-  if (limitLabel) {
-    limitLabel.textContent = `${spotlight} / ${MAX_SPOTLIGHT_PROJECTS}`;
-  }
-}
-
-function getAdminSpotlightCount() {
-  const projects = Array.isArray(window.adminProjectsCache) ? window.adminProjectsCache : [];
-  return projects.filter((p) => p.spotlight).length;
 }
 
 function setHeroMediaSelection(url) {
@@ -2754,11 +2572,7 @@ function renderAdminProjectsPage(page = 1) {
     const titleText = escapeHtml(project.title || "");
     const categoryText = escapeHtml(category);
     const summaryText = escapeHtml(summary);
-    const isSpotlight = Boolean(project.spotlight);
-    const cardClass = `admin-card${isSpotlight ? " admin-card--spotlight" : ""}`;
-    const spotlightChip = isSpotlight ? '<span class="admin-spotlight-chip">Spotlight</span>' : "";
-    const toggleLabel = isSpotlight ? "Remove Spotlight" : "Set as Spotlight";
-    const toggleValue = isSpotlight ? "false" : "true";
+    const cardClass = "admin-card";
     const clientName = typeof project.client === "string" ? project.client.trim() : "";
     const clientText = clientName ? `<span class="admin-client">Client: ${escapeHtml(clientName)}</span>` : "";
     const status = (project.status || "published") === "draft" ? "draft" : "published";
@@ -2779,7 +2593,7 @@ function renderAdminProjectsPage(page = 1) {
     container.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" data-index="${originalIndex}" data-spotlight="${isSpotlight}" data-status="${status}" data-order="${Number.isFinite(project.order) ? project.order : ""}">
+      <div class="${cardClass}" data-index="${originalIndex}" data-status="${status}" data-order="${Number.isFinite(project.order) ? project.order : ""}">
         <button class="admin-card-handle" type="button" aria-hidden="true">&#8801;</button>
         ${mediaMarkup}
         <div class="admin-info">
@@ -2787,13 +2601,11 @@ function renderAdminProjectsPage(page = 1) {
             <div class="admin-title-heading">
               <h3 style="margin:0">${titleText}</h3>
               ${statusChip}
-              ${spotlightChip}
             </div>
             <button class="more-btn" aria-label="More" onclick="toggleCardMenu(event, ${originalIndex})">&#8942;</button>
             <div class="more-menu" id="menu-${originalIndex}">
               <button onclick="openEditModal(${originalIndex})">Edit</button>
               <button onclick="toggleProjectStatus(${originalIndex}, '${statusToggleValue}')">${statusToggleLabel}</button>
-              <button onclick="toggleSpotlight(${originalIndex}, ${toggleValue})">${toggleLabel}</button>
               <button onclick="deleteProject(${originalIndex})">Delete</button>
             </div>
           </div>
@@ -3052,68 +2864,6 @@ function toggleCardMenu(e, i) {
 document.addEventListener("click", () => {
   document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
 });
-
-async function toggleSpotlight(index, enable = true) {
-  const numericIndex = Number(index);
-  if (!Number.isInteger(numericIndex) || numericIndex < 0) {
-    showAdminToast("Invalid project reference.", "error");
-    return;
-  }
-
-  const shouldEnable =
-    enable === true ||
-    enable === 1 ||
-    (typeof enable === "string" && enable.toLowerCase() === "true");
-
-  if (shouldEnable) {
-    const cache = Array.isArray(window.adminProjectsCache) ? window.adminProjectsCache : [];
-    const targetProject = cache[numericIndex];
-    const alreadySpotlight = Boolean(targetProject?.spotlight);
-    if (!alreadySpotlight) {
-      const currentSpotlights = getAdminSpotlightCount();
-      if (currentSpotlights >= MAX_SPOTLIGHT_PROJECTS) {
-        showAdminToast(`Only ${MAX_SPOTLIGHT_PROJECTS} projects can be spotlighted.`, "error");
-        return null;
-      }
-    }
-  }
-
-  try {
-    const fd = new FormData();
-    fd.append("spotlight", shouldEnable ? "true" : "false");
-    const res = await fetch(`/api/projects/${numericIndex}`, {
-      method: "PUT",
-      body: fd,
-    });
-    const data = await res.json();
-    if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || `Request failed (${res.status})`);
-    }
-
-    document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
-    showAdminToast(
-      shouldEnable ? "Project spotlight updated." : "Spotlight removed.",
-      "success",
-    );
-
-    await loadAdminProjects(window.adminProjectsCurrentPage || 1);
-    if (document.getElementById("projectsGrid")) {
-      const currentPage = window.publicProjectsCurrentPage || 1;
-      try {
-        await loadPublicProjects(currentPage);
-      } catch (refreshErr) {
-        console.error("Public gallery refresh failed:", refreshErr);
-      }
-    }
-    broadcastProjectsUpdate({ action: "spotlight", index: numericIndex, enable: shouldEnable });
-
-    return data;
-  } catch (err) {
-    console.error("Spotlight toggle error:", err);
-    showAdminToast(err.message || "Unable to update spotlight.", "error");
-    return null;
-  }
-}
 
 async function toggleProjectStatus(index, nextStatus = "published") {
   const numericIndex = Number(index);
@@ -3489,7 +3239,6 @@ $id("uploadForm")?.addEventListener("submit", async (e) => {
       media: uploadedMedia,
       status,
       tags,
-      spotlight: false,
       order: orderValue,
     };
 
@@ -3684,7 +3433,6 @@ async function deleteProject(index) {
 /************ INIT ************/
 document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
-  initSpotlightSliderNav();
   setupModalInteractions();
   loadHeroAmbientVideo().catch(() => {});
   scheduleIdle(() => {

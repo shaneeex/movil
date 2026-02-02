@@ -463,13 +463,6 @@
       flex-wrap: wrap;
     }
 
-    .admin-spotlight-note {
-      margin: 10px 0 0;
-      font-size: 0.75rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
 
     .projects-grid {
       display: grid;
@@ -567,11 +560,6 @@
       text-transform: uppercase;
     }
 
-    .admin-card--spotlight {
-      border-color: rgba(255, 213, 0, 0.5);
-      box-shadow: 0 35px 70px rgba(255, 213, 0, 0.12);
-    }
-
     .admin-card.dragging {
       opacity: 0.6;
       border-style: dashed;
@@ -603,16 +591,6 @@
     .projects-grid[data-reorder="1"] .more-btn,
     .projects-grid.projects-grid--reorder .more-btn {
       display: none;
-    }
-
-    .admin-spotlight-chip {
-      border-radius: 999px;
-      padding: 4px 10px;
-      background: linear-gradient(120deg, #ffd600, #ff8f55);
-      color: #020308;
-      font-size: 0.64rem;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
     }
 
     .more-btn {
@@ -1007,10 +985,6 @@
             <span class="admin-stat-label">Drafts</span>
             <strong class="admin-stat-value" id="statDrafts">0</strong>
           </article>
-          <article class="admin-stat-card">
-            <span class="admin-stat-label">Spotlight</span>
-            <strong class="admin-stat-value" id="statSpotlight">0</strong>
-          </article>
         </div>
       </header>
 
@@ -1194,9 +1168,6 @@
         <button type="button" id="adminResetFilters" class="admin-btn admin-btn--ghost admin-reset-btn">Reset</button>
         <button type="button" id="toggleReorderBtn" class="admin-btn admin-btn--ghost admin-reset-btn">Reorder</button>
       </div>
-      <p class="admin-spotlight-note">
-        Spotlight slots used: <strong id="adminSpotlightLimit">0 / 5</strong>
-      </p>
       <div class="admin-reorder-controls" id="adminReorderControls" hidden>
           <p>Drag projects to arrange their display order.</p>
           <div class="admin-reorder-actions">

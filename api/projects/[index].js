@@ -6,7 +6,6 @@ import { uploadMediaStream, deleteMedia } from "../../lib/media.js";
 import {
   getProjects,
   saveProjects,
-  applySpotlight,
   sanitizeIncomingMediaEntry,
   sanitizeRemovalEntry,
   sanitizeMediaFocusUpdate,
@@ -63,15 +62,9 @@ export default withErrorHandling(async function handler(req, res) {
 
     if (body.status !== undefined) {
       project.status = normalizeStatus(body.status);
-      if (project.status === "draft") {
-        project.spotlight = false;
-      }
     } else if (body.draft !== undefined) {
       const isDraft = parseBoolean(body.draft, false);
       project.status = normalizeStatus(isDraft ? "draft" : "published");
-      if (project.status === "draft") {
-        project.spotlight = false;
-      }
     }
 
     if (body.tags !== undefined) {
@@ -80,11 +73,6 @@ export default withErrorHandling(async function handler(req, res) {
 
     if (typeof body.heroMediaUrl === "string") {
       project.heroMediaUrl = body.heroMediaUrl.trim();
-    }
-
-    if (body.spotlight !== undefined) {
-      const enableSpotlight = parseBoolean(body.spotlight, false);
-      applySpotlight(projects, index, enableSpotlight);
     }
 
     let removalEntries = [];
@@ -132,15 +120,9 @@ export default withErrorHandling(async function handler(req, res) {
 
   if (fields.status !== undefined) {
     project.status = normalizeStatus(fields.status);
-    if (project.status === "draft") {
-      project.spotlight = false;
-    }
   } else if (fields.draft !== undefined) {
     const isDraft = parseBoolean(fields.draft, false);
     project.status = normalizeStatus(isDraft ? "draft" : "published");
-    if (project.status === "draft") {
-      project.spotlight = false;
-    }
   }
 
   if (fields.tags !== undefined) {
@@ -149,11 +131,6 @@ export default withErrorHandling(async function handler(req, res) {
 
   if (typeof fields.heroMediaUrl === "string") {
     project.heroMediaUrl = fields.heroMediaUrl.trim();
-  }
-
-  if (fields.spotlight !== undefined) {
-    const enableSpotlight = parseBoolean(fields.spotlight, false);
-    applySpotlight(projects, index, enableSpotlight);
   }
 
   let removedItems = [];
