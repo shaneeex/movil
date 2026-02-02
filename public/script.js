@@ -673,7 +673,8 @@ function normalizeCategory(value) {
 }
 
 function getProjectOrderValue(project) {
-  return Number.isFinite(project?.order) ? project.order : Number.POSITIVE_INFINITY;
+  if (Number.isFinite(project?.order)) return project.order;
+  return null;
 }
 
 function getProjectOriginalIndex(project, fallbackIndex = 0) {
@@ -681,29 +682,36 @@ function getProjectOriginalIndex(project, fallbackIndex = 0) {
   return fallbackIndex;
 }
 
-function compareProjectsByOrder(a, b, fallbackA = 0, fallbackB = 0) {
-  const orderDiff = getProjectOrderValue(a) - getProjectOrderValue(b);
-  if (orderDiff !== 0) return orderDiff;
+function getProjectRecencyWeight(project, fallback = 0) {
+  if (!project || typeof project !== "object") return fallback;
+  const created = Date.parse(project.createdAt);
+  if (Number.isFinite(created)) return created;
+  const updated = Date.parse(project.updatedAt);
+  if (Number.isFinite(updated)) return updated;
+  return fallback;
+}
+
+function compareProjectsForDisplay(a, b, fallbackA = 0, fallbackB = 0) {
+  const orderA = getProjectOrderValue(a);
+  const orderB = getProjectOrderValue(b);
+  if (orderA !== null || orderB !== null) {
+    if (orderA === null) return 1;
+    if (orderB === null) return -1;
+    if (orderA !== orderB) return orderA - orderB;
+  }
+  const recencyDiff =
+    getProjectRecencyWeight(b, fallbackB) - getProjectRecencyWeight(a, fallbackA);
+  if (recencyDiff !== 0) return recencyDiff;
   return getProjectOriginalIndex(a, fallbackA) - getProjectOriginalIndex(b, fallbackB);
 }
 
-function sortProjectsBySpotlight(projects = []) {
+function sortProjectsForDisplay(projects = []) {
   if (!Array.isArray(projects)) return [];
-  const annotated = projects.map((proj, idx) => ({ proj, fallback: idx }));
-  const spotlight = [];
-  const others = [];
-  annotated.forEach((entry) => {
-    if (entry.proj?.spotlight) {
-      spotlight.push(entry);
-    } else {
-      others.push(entry);
-    }
-  });
-  const sortEntries = (entries) =>
-    entries
-      .sort((a, b) => compareProjectsByOrder(a.proj, b.proj, a.fallback, b.fallback))
-      .map((entry) => entry.proj);
-  return [...sortEntries(spotlight), ...sortEntries(others)];
+  const total = projects.length;
+  return projects
+    .map((proj, idx) => ({ proj, fallback: total - idx }))
+    .sort((a, b) => compareProjectsForDisplay(a.proj, b.proj, a.fallback, b.fallback))
+    .map((entry) => entry.proj);
 }
 
 function getProjectSnippet(text, maxLength = 120) {
@@ -1209,11 +1217,10 @@ async function loadPublicProjects(page) {
         normalized.tags = parseTagsInput(project.tags || []);
         normalized.spotlight = normalized.status === "published" && Boolean(project.spotlight);
         return normalized;
-      })
-      .reverse();
+      });
 
     const visibleProjects = enriched.filter((proj) => (proj.status || "published") !== "draft");
-    const prioritized = sortProjectsBySpotlight(visibleProjects);
+    const prioritized = sortProjectsForDisplay(visibleProjects);
 
     prioritized.forEach((p, displayIndex) => {
       p.status = (p.status || "published") === "draft" ? "draft" : "published";
@@ -2536,7 +2543,7 @@ function applyAdminFilters(page = 1) {
     });
   }
 
-  window.adminProjectsDisplay = sortProjectsBySpotlight([...filtered].reverse());
+  window.adminProjectsDisplay = sortProjectsForDisplay([...filtered]);
   renderAdminProjectsPage(page);
 }
 
