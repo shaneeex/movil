@@ -487,6 +487,11 @@
       position: relative;
     }
 
+    .admin-card--featured {
+      border-color: rgba(110, 247, 209, 0.55);
+      box-shadow: 0 30px 60px rgba(110, 247, 209, 0.18);
+    }
+
     .admin-card:hover {
       transform: translateY(-4px);
       border-color: rgba(60, 208, 255, 0.3);
@@ -537,6 +542,17 @@
       border-color: rgba(255, 107, 107, 0.5);
       color: var(--danger);
       background: rgba(255, 107, 107, 0.12);
+    }
+
+    .admin-featured-chip {
+      border-radius: 999px;
+      border: 1px solid rgba(110, 247, 209, 0.4);
+      padding: 4px 10px;
+      font-size: 0.62rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(6, 16, 18, 0.9);
+      background: linear-gradient(120deg, #6ef7d1, #47cfff);
     }
 
     .admin-tags {
@@ -984,6 +1000,10 @@
           <article class="admin-stat-card">
             <span class="admin-stat-label">Drafts</span>
             <strong class="admin-stat-value" id="statDrafts">0</strong>
+          </article>
+          <article class="admin-stat-card">
+            <span class="admin-stat-label">Featured</span>
+            <strong class="admin-stat-value" id="statFeatured">0</strong>
           </article>
         </div>
       </header>

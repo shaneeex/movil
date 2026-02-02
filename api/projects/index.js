@@ -34,6 +34,7 @@ export default withErrorHandling(async function handler(req, res) {
   if (contentType.includes("application/json")) {
     const body = await parseJsonBody(req);
     const projects = await getProjects();
+    const shouldFeature = parseBoolean(body?.featured, false);
     const draftOverride =
       body?.draft !== undefined ? (parseBoolean(body.draft, false) ? "draft" : "published") : undefined;
     const status = normalizeStatus(body?.status ?? draftOverride);
@@ -46,6 +47,7 @@ export default withErrorHandling(async function handler(req, res) {
       return sendJSON(res, 400, { ok: false, error: "At least one media item is required." });
     }
 
+    const featuredEnabled = status === "published" && shouldFeature;
     const order = parseProjectOrder(body?.order ?? body?.displayOrder ?? body?.sort);
 
     const newProject = {
@@ -55,6 +57,7 @@ export default withErrorHandling(async function handler(req, res) {
       client: normalizeClient(body?.client),
       media,
       heroMediaUrl: sanitizeHeroMediaUrl({ media }, body?.heroMediaUrl),
+      featured: featuredEnabled,
       status,
       tags,
       createdAt: new Date().toISOString(),
@@ -70,12 +73,14 @@ export default withErrorHandling(async function handler(req, res) {
   });
 
   const projects = await getProjects();
+  const shouldFeature = parseBoolean(fields.featured, false);
   const draftOverride =
     fields.draft !== undefined ? (parseBoolean(fields.draft, false) ? "draft" : "published") : undefined;
   const status = normalizeStatus(fields.status ?? draftOverride);
   const tags = normalizeTags(fields.tags);
   const media = Array.isArray(files) ? files : [];
 
+  const featuredEnabled = status === "published" && shouldFeature;
   const order = parseProjectOrder(fields.order ?? fields.displayOrder ?? fields.sort);
 
   const newProject = {
@@ -85,6 +90,7 @@ export default withErrorHandling(async function handler(req, res) {
     client: normalizeClient(fields.client),
     media,
     heroMediaUrl: sanitizeHeroMediaUrl({ media }, fields.heroMediaUrl),
+    featured: featuredEnabled,
     status,
     tags,
     createdAt: new Date().toISOString(),

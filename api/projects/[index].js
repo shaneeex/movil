@@ -62,9 +62,15 @@ export default withErrorHandling(async function handler(req, res) {
 
     if (body.status !== undefined) {
       project.status = normalizeStatus(body.status);
+      if (project.status === "draft") {
+        project.featured = false;
+      }
     } else if (body.draft !== undefined) {
       const isDraft = parseBoolean(body.draft, false);
       project.status = normalizeStatus(isDraft ? "draft" : "published");
+      if (project.status === "draft") {
+        project.featured = false;
+      }
     }
 
     if (body.tags !== undefined) {
@@ -120,9 +126,15 @@ export default withErrorHandling(async function handler(req, res) {
 
   if (fields.status !== undefined) {
     project.status = normalizeStatus(fields.status);
+    if (project.status === "draft") {
+      project.featured = false;
+    }
   } else if (fields.draft !== undefined) {
     const isDraft = parseBoolean(fields.draft, false);
     project.status = normalizeStatus(isDraft ? "draft" : "published");
+    if (project.status === "draft") {
+      project.featured = false;
+    }
   }
 
   if (fields.tags !== undefined) {
@@ -188,3 +200,11 @@ function applyMediaFocusUpdates(project, entries) {
     return { ...media, focus };
   });
 }
+    if (body.featured !== undefined) {
+      const enableFeatured = parseBoolean(body.featured, false);
+      project.featured = project.status === "published" && enableFeatured;
+    }
+  if (fields.featured !== undefined) {
+    const enableFeatured = parseBoolean(fields.featured, false);
+    project.featured = project.status === "published" && enableFeatured;
+  }

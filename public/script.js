@@ -4,6 +4,7 @@ const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
+const FEATURED_PROJECTS_LIMIT = 4;
 const prefetchedAssets = new Set();
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const MEDIA_TRANSFORMS = {
@@ -25,6 +26,7 @@ let heroBlendObserver = null;
 let ctaContactObserver = null;
 if (typeof window !== "undefined") {
   window.publicProjectsFilter = window.publicProjectsFilter || "All";
+  window.publicFeaturedProjects = window.publicFeaturedProjects || [];
 }
 
 const PROJECTS_SYNC_STORAGE_KEY = "movilstudio:projects-updated";
@@ -1182,6 +1184,13 @@ async function loadPublicProjects(page) {
   const grid = document.getElementById("projectsGrid");
   if (!grid) return;
 
+  if (Array.isArray(window.publicFeaturedProjects)) {
+    window.publicFeaturedProjects.length = 0;
+  } else {
+    window.publicFeaturedProjects = [];
+  }
+  renderFeaturedProjectsSection();
+
   showProjectsSkeleton(grid);
 
   const currentPage =
@@ -1215,6 +1224,7 @@ async function loadPublicProjects(page) {
             ? "draft"
             : "published";
         normalized.tags = parseTagsInput(project.tags || []);
+        normalized.featured = normalized.status === "published" && Boolean(project.featured);
         return normalized;
       });
 
@@ -1227,6 +1237,7 @@ async function loadPublicProjects(page) {
     });
 
     window.publicProjectsCache = prioritized;
+    window.publicFeaturedProjects = prioritized.filter((proj) => proj.featured);
     if (typeof window.publicProjectsFilter !== "string") {
       window.publicProjectsFilter = "All";
     }
@@ -1244,6 +1255,7 @@ async function loadPublicProjects(page) {
 
     buildProjectFilters(prioritized);
     preloadProjectMedia(prioritized, 6);
+    renderFeaturedProjectsSection();
 
     const filteredCount = getFilteredProjects().length || 0;
     const totalPages = Math.max(1, Math.ceil(filteredCount / PROJECTS_PER_PAGE));
@@ -1582,6 +1594,52 @@ function changeProjectsPage(page) {
 }
 
 window.changeProjectsPage = changeProjectsPage;
+
+function renderFeaturedProjectsSection() {
+  const section = $id("featuredProjects");
+  const grid = $id("featuredGrid");
+  if (!section || !grid) return;
+  const projects = (window.publicFeaturedProjects || []).slice(0, FEATURED_PROJECTS_LIMIT);
+  if (!projects.length) {
+    section.hidden = true;
+    grid.innerHTML = "";
+    return;
+  }
+  section.hidden = false;
+  grid.innerHTML = projects.map(buildFeaturedProjectCard).join("");
+}
+
+function buildFeaturedProjectCard(project, index = 0) {
+  if (!project) return "";
+  const mediaItems = Array.isArray(project.media) ? project.media : [];
+  const heroMedia = findHeroMediaCandidate(mediaItems, project.heroMediaUrl) || mediaItems[0];
+  if (!heroMedia) return "";
+  const heroThumb = getMediaThumbWithVariant(heroMedia, "detail");
+  const titleText = escapeHtml(project.title || "Featured project");
+  const categoryText = escapeHtml(project.category || DEFAULT_PROJECT_CATEGORY);
+  const snippet = getProjectSnippet(project.description || "", 140);
+  const snippetHtml = snippet ? `<p>${escapeHtml(snippet)}</p>` : "";
+  const shareId = buildProjectShareId(project, project.__idx ?? index);
+  const detailPath = `/p/${shareId}`;
+  const altText = escapeHtml(`${project.title || "Project"} preview`);
+  const focusAttr = buildMediaFocusAttr(heroMedia);
+  return `
+    <article class="featured-card">
+      <div class="featured-card-media">
+        <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
+      </div>
+      <div class="featured-card-body">
+        <span class="featured-card-category">${categoryText}</span>
+        <h3>${titleText}</h3>
+        ${snippetHtml}
+        <a class="featured-card-link" href="${detailPath}">
+          View Project
+          <span aria-hidden="true">&#10140;</span>
+        </a>
+      </div>
+    </article>
+  `;
+}
 /************ MODAL (for public view) ************/
 /************ MODAL (for public view) ************/
 let currentProjectIndex = 0;
@@ -2300,12 +2358,14 @@ function initUploadFormToggle() {
 function updateAdminStats(projects = []) {
   const published = projects.filter((p) => (p.status || "published") === "published").length;
   const drafts = projects.length - published;
+  const featured = projects.filter((p) => p.featured).length;
   const setValue = (id, value) => {
     const el = $id(id);
     if (el) el.textContent = value;
   };
   setValue("statPublished", published);
   setValue("statDrafts", drafts);
+  setValue("statFeatured", featured);
 }
 
 function setHeroMediaSelection(url) {
@@ -2389,6 +2449,10 @@ async function loadAdminProjects(page = 1) {
     status:
       (project.status || "published").toString().toLowerCase() === "draft" ? "draft" : "published",
     tags: parseTagsInput(project.tags || []),
+    featured:
+      (project.status || "published").toString().toLowerCase() === "draft"
+        ? false
+        : Boolean(project.featured),
     __idx: idx,
   }));
 
@@ -2572,7 +2636,11 @@ function renderAdminProjectsPage(page = 1) {
     const titleText = escapeHtml(project.title || "");
     const categoryText = escapeHtml(category);
     const summaryText = escapeHtml(summary);
-    const cardClass = "admin-card";
+    const isFeatured = Boolean(project.featured);
+    const cardClass = `admin-card${isFeatured ? " admin-card--featured" : ""}`;
+    const featuredChip = isFeatured ? '<span class="admin-featured-chip">Featured</span>' : "";
+    const featuredToggleLabel = isFeatured ? "Remove Featured" : "Mark Featured";
+    const featuredToggleValue = isFeatured ? "false" : "true";
     const clientName = typeof project.client === "string" ? project.client.trim() : "";
     const clientText = clientName ? `<span class="admin-client">Client: ${escapeHtml(clientName)}</span>` : "";
     const status = (project.status || "published") === "draft" ? "draft" : "published";
@@ -2593,7 +2661,7 @@ function renderAdminProjectsPage(page = 1) {
     container.insertAdjacentHTML(
       "beforeend",
       `
-      <div class="${cardClass}" data-index="${originalIndex}" data-status="${status}" data-order="${Number.isFinite(project.order) ? project.order : ""}">
+      <div class="${cardClass}" data-index="${originalIndex}" data-featured="${isFeatured}" data-status="${status}" data-order="${Number.isFinite(project.order) ? project.order : ""}">
         <button class="admin-card-handle" type="button" aria-hidden="true">&#8801;</button>
         ${mediaMarkup}
         <div class="admin-info">
@@ -2601,11 +2669,13 @@ function renderAdminProjectsPage(page = 1) {
             <div class="admin-title-heading">
               <h3 style="margin:0">${titleText}</h3>
               ${statusChip}
+              ${featuredChip}
             </div>
             <button class="more-btn" aria-label="More" onclick="toggleCardMenu(event, ${originalIndex})">&#8942;</button>
             <div class="more-menu" id="menu-${originalIndex}">
               <button onclick="openEditModal(${originalIndex})">Edit</button>
               <button onclick="toggleProjectStatus(${originalIndex}, '${statusToggleValue}')">${statusToggleLabel}</button>
+              <button onclick="toggleFeatured(${originalIndex}, ${featuredToggleValue})">${featuredToggleLabel}</button>
               <button onclick="deleteProject(${originalIndex})">Delete</button>
             </div>
           </div>
@@ -3428,6 +3498,56 @@ async function deleteProject(index) {
     alert("Error: " + err.message);
   }
 }
+
+async function toggleFeatured(index, enable = true) {
+  const numericIndex = Number(index);
+  if (!Number.isInteger(numericIndex) || numericIndex < 0) {
+    showAdminToast("Invalid project reference.", "error");
+    return;
+  }
+
+  const shouldEnable =
+    enable === true ||
+    enable === 1 ||
+    (typeof enable === "string" && enable.toLowerCase() === "true");
+
+  try {
+    const fd = new FormData();
+    fd.append("featured", shouldEnable ? "true" : "false");
+    const res = await fetch(`/api/projects/${numericIndex}`, {
+      method: "PUT",
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || `Request failed (${res.status})`);
+    }
+
+    document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
+    showAdminToast(
+      shouldEnable ? "Project marked as featured." : "Removed from featured list.",
+      "success",
+    );
+
+    await loadAdminProjects(window.adminProjectsCurrentPage || 1);
+    if (document.getElementById("projectsGrid")) {
+      const currentPage = window.publicProjectsCurrentPage || 1;
+      try {
+        await loadPublicProjects(currentPage);
+      } catch (refreshErr) {
+        console.error("Public gallery refresh failed:", refreshErr);
+      }
+    }
+    broadcastProjectsUpdate({ action: "featured", index: numericIndex, enable: shouldEnable });
+
+    return data;
+  } catch (err) {
+    console.error("Featured toggle error:", err);
+    showAdminToast(err.message || "Unable to update featured status.", "error");
+    return null;
+  }
+}
+window.toggleFeatured = toggleFeatured;
 
 /************ INIT ************/
 /************ INIT ************/
