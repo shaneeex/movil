@@ -463,6 +463,14 @@
       flex-wrap: wrap;
     }
 
+    .admin-spotlight-note {
+      margin: 10px 0 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
     .projects-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1183,10 +1191,13 @@
             <label>Tags</label>
             <div id="adminTagFilters" class="admin-tag-filter"></div>
           </div>
-          <button type="button" id="adminResetFilters" class="admin-btn admin-btn--ghost admin-reset-btn">Reset</button>
-          <button type="button" id="toggleReorderBtn" class="admin-btn admin-btn--ghost admin-reset-btn">Reorder</button>
-        </div>
-        <div class="admin-reorder-controls" id="adminReorderControls" hidden>
+        <button type="button" id="adminResetFilters" class="admin-btn admin-btn--ghost admin-reset-btn">Reset</button>
+        <button type="button" id="toggleReorderBtn" class="admin-btn admin-btn--ghost admin-reset-btn">Reorder</button>
+      </div>
+      <p class="admin-spotlight-note">
+        Spotlight slots used: <strong id="adminSpotlightLimit">0 / 5</strong>
+      </p>
+      <div class="admin-reorder-controls" id="adminReorderControls" hidden>
           <p>Drag projects to arrange their display order.</p>
           <div class="admin-reorder-actions">
             <button type="button" class="admin-btn admin-btn--ghost" id="adminReorderCancel">Cancel</button>

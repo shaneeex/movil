@@ -4,6 +4,7 @@ const VIDEO_THUMB_FALLBACK = "/static/default-video-thumb.jpg";
 const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
+const MAX_SPOTLIGHT_PROJECTS = 5;
 const prefetchedAssets = new Set();
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const MEDIA_TRANSFORMS = {
@@ -23,8 +24,9 @@ let sectionObserver = null;
 let featuredMediaObserver = null;
 let heroBlendObserver = null;
 let ctaContactObserver = null;
-if (typeof window !== 'undefined') {
-  window.publicProjectsFilter = window.publicProjectsFilter || 'All';
+if (typeof window !== "undefined") {
+  window.publicProjectsFilter = window.publicProjectsFilter || "All";
+  window.publicSpotlightProjects = window.publicSpotlightProjects || [];
 }
 
 const PROJECTS_SYNC_STORAGE_KEY = "movilstudio:projects-updated";
@@ -59,7 +61,9 @@ const HERO_FOREGROUND_OPACITY_DEFAULT = 1;
 const HERO_BACKGROUND_OPACITY_MIN = 0;
 const HERO_BACKGROUND_OPACITY_MAX = 1;
 const HERO_BACKGROUND_OPACITY_DEFAULT = 0.6;
+const SPOTLIGHT_AUTOPLAY_INTERVAL = 6000;
 let adminHeroVideoState = null;
+const spotlightSliderState = { index: 0, total: 0, timer: null };
 
 function clampNumber(value, min, max) {
   if (!Number.isFinite(value)) return null;
@@ -1229,13 +1233,15 @@ async function loadPublicProjects(page) {
     });
 
     window.publicProjectsCache = prioritized;
+    window.publicSpotlightProjects = prioritized.filter((proj) => proj.spotlight);
     if (typeof window.publicProjectsFilter !== "string") {
-    window.publicProjectsFilter = "All";
-  }
+      window.publicProjectsFilter = "All";
+    }
 
-  if (window.publicProjectsFilter !== "All") {
-    const hasActive = prioritized.some(
-        (proj) => (proj.category || DEFAULT_PROJECT_CATEGORY).toLowerCase() ===
+    if (window.publicProjectsFilter !== "All") {
+      const hasActive = prioritized.some(
+        (proj) =>
+          (proj.category || DEFAULT_PROJECT_CATEGORY).toLowerCase() ===
           window.publicProjectsFilter.toLowerCase(),
       );
       if (!hasActive) {
@@ -1245,6 +1251,7 @@ async function loadPublicProjects(page) {
 
     buildProjectFilters(prioritized);
     preloadProjectMedia(prioritized, 6);
+    renderSpotlightSlider();
 
     const filteredCount = getFilteredProjects().length || 0;
     const totalPages = Math.max(1, Math.ceil(filteredCount / PROJECTS_PER_PAGE));
@@ -1488,6 +1495,155 @@ function openProjectFromHash() {
   if (!Number.isInteger(sourceIndex)) return;
   const shareId = buildProjectShareId(project, sourceIndex);
   window.location.replace(`/p/${shareId}`);
+}
+
+function renderSpotlightSlider() {
+  const section = $id("spotlightSection");
+  const slider = $id("spotlightSlider");
+  const slidesRoot = $id("spotlightSlides");
+  const dotsRoot = $id("spotlightDots");
+  if (!section || !slider || !slidesRoot || !dotsRoot) return;
+
+  const spotlightProjects = (window.publicSpotlightProjects || []).slice(0, MAX_SPOTLIGHT_PROJECTS);
+  if (!spotlightProjects.length) {
+    section.hidden = true;
+    slidesRoot.innerHTML = "";
+    dotsRoot.innerHTML = "";
+    spotlightSliderState.total = 0;
+    stopSpotlightAutoplay();
+    return;
+  }
+
+  section.hidden = false;
+  slidesRoot.innerHTML = spotlightProjects.map(buildSpotlightSlide).join("");
+  dotsRoot.innerHTML = spotlightProjects
+    .map(
+      (_, idx) =>
+        `<button type="button" class="spotlight-dot" data-spotlight-dot="${idx}" aria-label="Go to spotlight ${idx + 1}"></button>`,
+    )
+    .join("");
+  spotlightSliderState.total = spotlightProjects.length;
+  setSpotlightSlide(0);
+  if (spotlightProjects.length > 1) {
+    startSpotlightAutoplay();
+  } else {
+    stopSpotlightAutoplay();
+  }
+}
+
+function buildSpotlightSlide(project, index = 0) {
+  const mediaItems = Array.isArray(project.media) ? project.media : [];
+  const heroMedia = findHeroMediaCandidate(mediaItems, project.heroMediaUrl) || mediaItems[0];
+  if (!heroMedia) return "";
+
+  const heroThumb = getMediaThumbWithVariant(heroMedia, "detail");
+  const titleText = escapeHtml(project.title || "Spotlight Project");
+  const categoryText = escapeHtml(project.category || DEFAULT_PROJECT_CATEGORY);
+  const snippet = getProjectSnippet(project.description || "", 140);
+  const snippetHtml = snippet ? `<p>${escapeHtml(snippet)}</p>` : "";
+  const shareId = buildProjectShareId(project, project.__idx ?? index);
+  const detailPath = `/p/${shareId}`;
+  const altText = escapeHtml(`${project.title || "Project"} spotlight hero`);
+  const focusAttr = buildMediaFocusAttr(heroMedia);
+
+  return `
+    <article class="spotlight-slide" data-slide="${index}">
+      <div class="spotlight-slide__media">
+        <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
+      </div>
+      <div class="spotlight-slide__info">
+        <span class="spotlight-slide__category">${categoryText}</span>
+        <h3>${titleText}</h3>
+        ${snippetHtml}
+        <a class="spotlight-slide__cta" href="${detailPath}">
+          View Project
+          <span aria-hidden="true">&#10140;</span>
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+function setSpotlightSlide(targetIndex) {
+  const slidesRoot = $id("spotlightSlides");
+  if (!slidesRoot) return;
+  const slides = slidesRoot.querySelectorAll(".spotlight-slide");
+  if (!slides.length) return;
+
+  const dotsRoot = $id("spotlightDots");
+  const dots = dotsRoot ? dotsRoot.querySelectorAll(".spotlight-dot") : [];
+  const total = slides.length;
+  const normalized = ((targetIndex % total) + total) % total;
+  spotlightSliderState.index = normalized;
+
+  slides.forEach((slide, idx) => {
+    slide.classList.toggle("is-active", idx === normalized);
+  });
+  dots.forEach((dot, idx) => {
+    dot.classList.toggle("is-active", idx === normalized);
+  });
+
+  const counter = $id("spotlightCounter");
+  if (counter) {
+    counter.textContent = `${normalized + 1} / ${total}`;
+  }
+}
+
+function nextSpotlightSlide() {
+  setSpotlightSlide(spotlightSliderState.index + 1);
+}
+
+function prevSpotlightSlide() {
+  setSpotlightSlide(spotlightSliderState.index - 1);
+}
+
+function startSpotlightAutoplay() {
+  stopSpotlightAutoplay();
+  if (spotlightSliderState.total <= 1) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  spotlightSliderState.timer = setInterval(nextSpotlightSlide, SPOTLIGHT_AUTOPLAY_INTERVAL);
+}
+
+function stopSpotlightAutoplay() {
+  if (spotlightSliderState.timer) {
+    clearInterval(spotlightSliderState.timer);
+    spotlightSliderState.timer = null;
+  }
+}
+
+function initSpotlightSliderNav() {
+  const prevBtn = document.querySelector("[data-spotlight-prev]");
+  const nextBtn = document.querySelector("[data-spotlight-next]");
+  prevBtn?.addEventListener("click", () => {
+    prevSpotlightSlide();
+    startSpotlightAutoplay();
+  });
+  nextBtn?.addEventListener("click", () => {
+    nextSpotlightSlide();
+    startSpotlightAutoplay();
+  });
+
+  const dotsRoot = $id("spotlightDots");
+  dotsRoot?.addEventListener("click", (event) => {
+    const dot = event.target.closest("[data-spotlight-dot]");
+    if (!dot) return;
+    const idx = Number(dot.dataset.spotlightDot);
+    if (!Number.isFinite(idx)) return;
+    setSpotlightSlide(idx);
+    startSpotlightAutoplay();
+  });
+
+  const slider = $id("spotlightSlider");
+  if (slider) {
+    slider.addEventListener("mouseenter", stopSpotlightAutoplay);
+    slider.addEventListener("mouseleave", () => {
+      if (spotlightSliderState.total > 1) {
+        startSpotlightAutoplay();
+      }
+    });
+  }
 }
 
 async function shareProject(event, projectIndex) {
@@ -2322,6 +2478,16 @@ function updateAdminStats(projects = []) {
   setValue("statPublished", published);
   setValue("statDrafts", drafts);
   setValue("statSpotlight", spotlight);
+
+  const limitLabel = $id("adminSpotlightLimit");
+  if (limitLabel) {
+    limitLabel.textContent = `${spotlight} / ${MAX_SPOTLIGHT_PROJECTS}`;
+  }
+}
+
+function getAdminSpotlightCount() {
+  const projects = Array.isArray(window.adminProjectsCache) ? window.adminProjectsCache : [];
+  return projects.filter((p) => p.spotlight).length;
 }
 
 function setHeroMediaSelection(url) {
@@ -2898,6 +3064,19 @@ async function toggleSpotlight(index, enable = true) {
     enable === true ||
     enable === 1 ||
     (typeof enable === "string" && enable.toLowerCase() === "true");
+
+  if (shouldEnable) {
+    const cache = Array.isArray(window.adminProjectsCache) ? window.adminProjectsCache : [];
+    const targetProject = cache[numericIndex];
+    const alreadySpotlight = Boolean(targetProject?.spotlight);
+    if (!alreadySpotlight) {
+      const currentSpotlights = getAdminSpotlightCount();
+      if (currentSpotlights >= MAX_SPOTLIGHT_PROJECTS) {
+        showAdminToast(`Only ${MAX_SPOTLIGHT_PROJECTS} projects can be spotlighted.`, "error");
+        return null;
+      }
+    }
+  }
 
   try {
     const fd = new FormData();
@@ -3505,6 +3684,7 @@ async function deleteProject(index) {
 /************ INIT ************/
 document.addEventListener("DOMContentLoaded", async () => {
   setupProjectsSync();
+  initSpotlightSliderNav();
   setupModalInteractions();
   loadHeroAmbientVideo().catch(() => {});
   scheduleIdle(() => {
