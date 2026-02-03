@@ -80,6 +80,10 @@ export default withErrorHandling(async function handler(req, res) {
     if (typeof body.heroMediaUrl === "string") {
       project.heroMediaUrl = body.heroMediaUrl.trim();
     }
+    if (body.featured !== undefined) {
+      const enableFeatured = parseBoolean(body.featured, false);
+      project.featured = project.status === "published" && enableFeatured;
+    }
 
     let removalEntries = [];
     if (Array.isArray(body?.removed)) {
@@ -144,6 +148,10 @@ export default withErrorHandling(async function handler(req, res) {
   if (typeof fields.heroMediaUrl === "string") {
     project.heroMediaUrl = fields.heroMediaUrl.trim();
   }
+  if (fields.featured !== undefined) {
+    const enableFeatured = parseBoolean(fields.featured, false);
+    project.featured = project.status === "published" && enableFeatured;
+  }
 
   let removedItems = [];
   if (typeof fields.removed === "string" && fields.removed.trim()) {
@@ -200,11 +208,3 @@ function applyMediaFocusUpdates(project, entries) {
     return { ...media, focus };
   });
 }
-    if (body.featured !== undefined) {
-      const enableFeatured = parseBoolean(body.featured, false);
-      project.featured = project.status === "published" && enableFeatured;
-    }
-  if (fields.featured !== undefined) {
-    const enableFeatured = parseBoolean(fields.featured, false);
-    project.featured = project.status === "published" && enableFeatured;
-  }
