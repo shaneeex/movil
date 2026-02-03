@@ -308,7 +308,7 @@
         </a>
       </div>
 
-      <p class="copyright">&copy; 2025 Movil. All rights reserved.</p>
+      <p class="copyright">&copy; <span id="footerYear">2025</span> Movil. All rights reserved.</p>
     </div>
   </footer>
   <script>
@@ -327,6 +327,10 @@
           navLinks.dataset.open = "false";
         });
       });
+    }
+    const footerYear = document.getElementById("footerYear");
+    if (footerYear) {
+      footerYear.textContent = String(new Date().getFullYear());
     }
   </script>
   <script src="script.js" defer></script>
