@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signage & Branding Services in Maldives | Movil</title>
+  <meta name="description" content="Explore Movil's signage and branding services across Maldives, including signage making, sticker printing, LED screens, shop signs, and channel letters." />
+  <link rel="canonical" href="https://www.movillive.com/services/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Signage & Branding Services in Maldives | Movil" />
+  <meta property="og:description" content="Signage, sticker printing, LED screens, shop signs, and branding services across Maldives." />
+  <meta property="og:url" content="https://www.movillive.com/services/" />
+  <meta property="og:image" content="https://www.movillive.com/favicon/android-chrome-512x512.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Space+Grotesk:wght@500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="/style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name": "Signage & Branding Services",
+    "url": "https://www.movillive.com/services/",
+    "about": ["signage", "branding", "stickers", "LED screens", "shop signs", "channel letters"]
+  }
+  </script>
+</head>
+<body class="service-page">
+  <header>
+    <div class="container">
+      <a class="logo" href="/" aria-label="Movil home">
+        <img src="/navlogo.png" alt="Movil logo" />
+        <span class="sr-only">Movil</span>
+      </a>
+      <nav class="nav" aria-label="Primary">
+        <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Toggle navigation">
+          <span></span>
+        </button>
+        <ul id="primary-nav" class="nav__links" data-open="false">
+          <li><a href="/#hero">Home</a></li>
+          <li><a href="/#about">About</a></li>
+          <li><a href="/#services">Services</a></li>
+          <li><a href="/#projects">Projects</a></li>
+          <li><a href="/#contact">Contact</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="service-hero">
+    <div class="section-inner">
+      <p class="section-eyebrow">Services</p>
+      <h1>Signage & Branding Services in Maldives</h1>
+      <p>Explore our core services for businesses across Maldives.</p>
+    </div>
+  </section>
+
+  <section class="service-content reveal-section">
+    <div class="section-inner">
+      <div class="services-grid">
+        <article class="service-card">
+          <h3>Signage Making</h3>
+          <p>Custom signage for cafes, restaurants, shops, offices, and resorts.</p>
+          <a href="/services/signage-maldives.html">View service</a>
+        </article>
+        <article class="service-card">
+          <h3>Sticker Printing & Installation</h3>
+          <p>High-quality sticker printing, decals, and professional installation.</p>
+          <a href="/services/sticker-printing-maldives.html">View service</a>
+        </article>
+        <article class="service-card">
+          <h3>LED Screens & Video Walls</h3>
+          <p>Indoor and outdoor LED screens, video walls, and display solutions.</p>
+          <a href="/services/led-screen-video-wall-maldives.html">View service</a>
+        </article>
+        <article class="service-card">
+          <h3>Shop Signs</h3>
+          <p>Premium storefront signs with lighting and custom finishes.</p>
+          <a href="/services/shop-signs-maldives.html">View service</a>
+        </article>
+        <article class="service-card">
+          <h3>LED Channel Letters</h3>
+          <p>Illuminated channel letters for maximum brand visibility.</p>
+          <a href="/services/led-channel-letters-maldives.html">View service</a>
+        </article>
+        <article class="service-card">
+          <h3>Branding & Wayfinding</h3>
+          <p>Brand rollout, interior branding, and wayfinding systems.</p>
+          <a href="/services/branding-maldives.html">View service</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-content">
+      <a class="footer-logo" href="/" aria-label="Movil home">
+        <img src="/navlogo.png" alt="Movil logo" />
+      </a>
+      <p>Crafting visual experiences.</p>
+      <div class="footer-details">
+        <p>
+          <i class="fa-solid fa-location-dot"></i>
+          <span class="location-preview">
+            <a class="contact-value" href="https://maps.app.goo.gl/6Be2Rj4qKT4tFPqA9" target="_blank" rel="noopener noreferrer">H.Maanifa, Filligas Magu, Male' 20013</a>
+          </span>
+        </p>
+        <p><i class="fa-solid fa-phone"></i> <a class="contact-value" href="tel:+9607899922">+960 789 9922</a></p>
+        <p><i class="fa-solid fa-envelope"></i> <a class="contact-value" href="mailto:sales@movillive.com">sales@movillive.com</a></p>
+      </div>
+      <p class="copyright">&copy; <span id="footerYear">2025</span> Movil. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    const navToggle = document.querySelector(".nav__toggle");
+    const navLinks = document.querySelector(".nav__links");
+    if (navToggle && navLinks) {
+      navToggle.addEventListener("click", () => {
+        const isOpen = navToggle.getAttribute("aria-expanded") === "true";
+        navToggle.setAttribute("aria-expanded", String(!isOpen));
+        navLinks.dataset.open = String(!isOpen);
+      });
+      navLinks.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => {
+          navToggle.setAttribute("aria-expanded", "false");
+          navLinks.dataset.open = "false";
+        });
+      });
+    }
+    const footerYear = document.getElementById("footerYear");
+    if (footerYear) {
+      footerYear.textContent = String(new Date().getFullYear());
+    }
+  </script>
+</body>
+</html>

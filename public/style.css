@@ -1531,6 +1531,130 @@ header .container {
   transform: translateY(-1px);
 }
 
+.services-section .section-inner {
+  text-align: left;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(16px, 3vw, 26px);
+  margin-top: clamp(18px, 3vw, 26px);
+}
+
+.service-card {
+  padding: clamp(18px, 3vw, 26px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(145deg, rgba(12, 14, 22, 0.88), rgba(6, 8, 14, 0.8)),
+    radial-gradient(circle at 12% 20%, rgba(110, 247, 209, 0.16), transparent 55%);
+  box-shadow: 0 22px 46px rgba(2, 4, 12, 0.5);
+  display: grid;
+  gap: 12px;
+  min-height: 100%;
+}
+
+.service-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.service-card p {
+  margin: 0;
+  color: rgba(232, 235, 246, 0.8);
+  font-size: 0.95rem;
+}
+
+.service-card a {
+  justify-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.service-card a:hover {
+  border-color: rgba(110, 247, 209, 0.7);
+  background: rgba(110, 247, 209, 0.16);
+}
+
+.service-hero {
+  padding: clamp(70px, 12vw, 120px) 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(60, 208, 255, 0.12), transparent 55%),
+    linear-gradient(135deg, rgba(5, 7, 14, 0.95), rgba(3, 4, 8, 0.92));
+}
+
+.service-hero .section-inner {
+  text-align: left;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.service-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.service-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.service-content .section-inner {
+  text-align: left;
+  align-items: flex-start;
+}
+
+.service-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(235, 240, 255, 0.82);
+}
+
+.service-list li {
+  padding-left: 22px;
+  position: relative;
+}
+
+.service-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: rgba(110, 247, 209, 0.9);
+}
+
+.service-cta {
+  text-align: center;
+}
+
+.service-cta .btn {
+  margin-top: 16px;
+}
+
 .featured-carousel__nav {
   display: inline-flex;
   align-items: center;

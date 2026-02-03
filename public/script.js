@@ -236,6 +236,29 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+async function readResponsePayload(res) {
+  if (!res) return { data: null, text: "" };
+  let text = "";
+  try {
+    text = await res.text();
+  } catch (err) {
+    return { data: null, text: "", error: err };
+  }
+  const trimmed = text.trim();
+  if (!trimmed) return { data: null, text: "" };
+  try {
+    return { data: JSON.parse(trimmed), text: trimmed };
+  } catch (err) {
+    return { data: null, text: trimmed, error: err };
+  }
+}
+
+function pickResponseErrorMessage(data, text, fallback) {
+  if (data?.error) return data.error;
+  if (typeof text === "string" && text && !/[<>]/.test(text)) return text;
+  return fallback;
+}
+
 
 function getMediaThumb(media) {
   return getMediaThumbWithVariant(media, "grid");
@@ -559,11 +582,12 @@ let cloudinaryConfigPromise = null;
 async function getCloudinaryConfig() {
   if (!cloudinaryConfigPromise) {
     cloudinaryConfigPromise = fetch("/api/config/cloudinary")
-      .then((res) => {
+      .then(async (res) => {
+        const { data, text } = await readResponsePayload(res);
         if (!res.ok) {
-          throw new Error("Cloudinary configuration is unavailable.");
+          throw new Error(pickResponseErrorMessage(data, text, "Cloudinary configuration is unavailable."));
         }
-        return res.json();
+        return data;
       })
       .then((data) => {
         if (!data?.ok || !data.cloudName || !data.uploadPreset) {
@@ -1057,10 +1081,10 @@ async function fetchHeroVideo(force = false) {
   }
   try {
     const res = await fetch("/api/config/hero-video", { cache: "no-store" });
+    const { data, text } = await readResponsePayload(res);
     if (!res.ok) {
-      throw new Error(`Hero config request failed (${res.status})`);
+      throw new Error(pickResponseErrorMessage(data, text, `Hero config request failed (${res.status})`));
     }
-    const data = await res.json();
     heroVideoCache = data?.heroVideo || null;
     heroVideoCacheTime = Date.now();
     return heroVideoCache;
@@ -1204,9 +1228,14 @@ async function loadPublicProjects(page) {
 
   try {
     const res = await fetch("/api/projects");
-    if (!res.ok) throw new Error("Failed to fetch projects");
-
-    const rawProjects = await res.json();
+    const { data, text } = await readResponsePayload(res);
+    if (!res.ok) {
+      throw new Error(pickResponseErrorMessage(data, text, "Failed to fetch projects"));
+    }
+    if (!Array.isArray(data)) {
+      throw new Error("Server returned an invalid project list.");
+    }
+    const rawProjects = data;
     const enriched = [...rawProjects]
       .map((project, idx) => {
         const normalized = {
@@ -2318,8 +2347,10 @@ async function refreshAdminHeroVideo(payload) {
   if (!heroVideo) {
     try {
       const res = await fetch("/api/admin/hero-video", { cache: "no-store" });
-      if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      const data = await res.json();
+      const { data, text } = await readResponsePayload(res);
+      if (!res.ok) {
+        throw new Error(pickResponseErrorMessage(data, text, `Request failed (${res.status})`));
+      }
       heroVideo = data?.heroVideo || null;
       heroVideoCache = heroVideo;
       heroVideoCacheTime = Date.now();
@@ -2558,8 +2589,13 @@ async function fetchAllProjects() {
   const cached = readProjectsCache();
   if (cached) return cached;
   const res = await fetch("/api/projects", { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch projects");
-  const data = await res.json();
+  const { data, text } = await readResponsePayload(res);
+  if (!res.ok) {
+    throw new Error(pickResponseErrorMessage(data, text, "Failed to fetch projects"));
+  }
+  if (!Array.isArray(data)) {
+    throw new Error("Server returned an invalid project list.");
+  }
   writeProjectsCache(data);
   return data;
 }
@@ -3615,8 +3651,10 @@ async function deleteProject(index) {
   if (!confirm("Delete this project and its files?")) return;
   try {
     const res = await fetch(`/api/projects/${index}`, { method: "DELETE" });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || "Delete failed");
+    const { data, text } = await readResponsePayload(res);
+    if (!res.ok || !data?.ok) {
+      throw new Error(pickResponseErrorMessage(data, text, "Delete failed"));
+    }
     alert(`Deleted: ${data.removed?.title || "(untitled)"}`);
     const targetPage = window.adminProjectsCurrentPage || 1;
     await loadAdminProjects(targetPage);
@@ -3654,9 +3692,9 @@ async function toggleFeatured(index, enable = true) {
       method: "PUT",
       body: fd,
     });
-    const data = await res.json();
+    const { data, text } = await readResponsePayload(res);
     if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || `Request failed (${res.status})`);
+      throw new Error(pickResponseErrorMessage(data, text, `Request failed (${res.status})`));
     }
 
     document.querySelectorAll(".more-menu.open").forEach((m) => m.classList.remove("open"));
