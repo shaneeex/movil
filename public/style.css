@@ -1401,8 +1401,8 @@ header .container {
 .featured-carousel__viewport {
   overflow: hidden;
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 10, 18, 0.6);
+  border: none;
+  background: transparent;
   touch-action: pan-y;
 }
 
