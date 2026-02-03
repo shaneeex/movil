@@ -1346,24 +1346,43 @@ header .container {
 }
 
 .featured-projects {
-  padding: clamp(52px, 8vw, 96px) 0;
+  position: relative;
+  padding: clamp(56px, 9vw, 104px) 0;
   background:
-    linear-gradient(135deg, rgba(6, 8, 16, 0.95), rgba(4, 4, 10, 0.9)),
-    radial-gradient(circle at 12% 20%, rgba(11, 160, 255, 0.12), transparent 55%);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+    linear-gradient(135deg, rgba(6, 8, 16, 0.96), rgba(4, 6, 12, 0.92)),
+    radial-gradient(circle at 10% 15%, rgba(11, 160, 255, 0.16), transparent 55%),
+    radial-gradient(circle at 80% 0%, rgba(123, 102, 255, 0.18), transparent 45%);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.featured-projects::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 60%);
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .featured-inner {
   width: min(1200px, 92vw);
   margin: 0 auto;
   display: grid;
-  gap: clamp(28px, 4vw, 40px);
+  gap: clamp(26px, 4vw, 38px);
+  position: relative;
+  z-index: 1;
+}
+
+.featured-header {
+  display: grid;
+  gap: 12px;
 }
 
 .featured-header h2 {
   margin: 0;
-  font-size: clamp(2rem, 4.5vw, 2.8rem);
+  font-size: clamp(2.1rem, 4.6vw, 2.9rem);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #6ef7d1;
@@ -1381,14 +1400,36 @@ header .container {
 }
 
 .featured-card {
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  border-radius: 26px;
+  background: rgba(10, 12, 20, 0.86);
   overflow: hidden;
-  background: rgba(12, 14, 22, 0.8);
-  box-shadow: 0 24px 50px rgba(2, 4, 12, 0.6);
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  box-shadow: 0 26px 55px rgba(2, 4, 12, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.featured-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, rgba(110, 247, 209, 0.18), rgba(71, 207, 255, 0.08), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.featured-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(110, 247, 209, 0.4);
+  box-shadow: 0 34px 70px rgba(2, 6, 16, 0.65);
+}
+
+.featured-card:hover::before {
+  opacity: 1;
 }
 
 .featured-card-media {
@@ -1396,6 +1437,14 @@ header .container {
   width: 100%;
   padding-top: 62%;
   overflow: hidden;
+}
+
+.featured-card-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(5, 6, 12, 0) 55%, rgba(5, 6, 12, 0.65));
+  opacity: 0.9;
 }
 
 .featured-card-media img {
@@ -1406,6 +1455,11 @@ header .container {
   object-fit: cover;
   object-position: var(--media-focus-x, 50%) var(--media-focus-y, 50%);
   transform: scale(var(--media-zoom, 1));
+  transition: transform 0.6s ease;
+}
+
+.featured-card:hover .featured-card-media img {
+  transform: scale(calc(var(--media-zoom, 1) * 1.05));
 }
 
 .featured-card-body {
@@ -1423,7 +1477,7 @@ header .container {
 
 .featured-card-body h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.28rem;
   letter-spacing: 0.04em;
 }
 
@@ -1444,15 +1498,16 @@ header .container {
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.86);
+  background: linear-gradient(120deg, rgba(110, 247, 209, 0.15), rgba(71, 207, 255, 0.1));
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
 }
 
 .featured-card-link:hover {
   border-color: rgba(110, 247, 209, 0.8);
-  background: rgba(110, 247, 209, 0.15);
+  background: linear-gradient(120deg, rgba(110, 247, 209, 0.3), rgba(71, 207, 255, 0.22));
+  transform: translateY(-1px);
 }
 
 @keyframes heroStripeOrbit {
