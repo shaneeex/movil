@@ -1510,6 +1510,57 @@ header .container {
   transform: translateY(-1px);
 }
 
+@media (max-width: 900px) {
+  .featured-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .featured-projects {
+    padding: clamp(44px, 10vw, 72px) 0;
+  }
+
+  .featured-inner {
+    width: min(1080px, 94vw);
+    gap: 22px;
+  }
+
+  .featured-header h2 {
+    font-size: clamp(1.6rem, 7vw, 2.1rem);
+    letter-spacing: 0.14em;
+  }
+
+  .featured-header p {
+    font-size: 0.95rem;
+  }
+
+  .featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .featured-card {
+    border-radius: 20px;
+  }
+
+  .featured-card-media {
+    padding-top: 68%;
+  }
+
+  .featured-card-body {
+    padding: 18px;
+  }
+
+  .featured-card-body h3 {
+    font-size: 1.1rem;
+  }
+
+  .featured-card-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @keyframes heroStripeOrbit {
   0% {
     transform: translate(-50%, -50%) rotate(0deg) scale(1);
