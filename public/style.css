@@ -1693,6 +1693,17 @@ header .container {
   max-width: 520px;
 }
 
+.services-list__copy {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  margin: 0;
+}
+
+.services-list__copy span {
+  display: block;
+}
+
 .services-grid--rich {
   margin-top: clamp(26px, 4vw, 36px);
 }
