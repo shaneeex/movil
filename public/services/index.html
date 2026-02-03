@@ -26,7 +26,7 @@
   }
   </script>
 </head>
-<body class="service-page">
+<body class="service-page services-index">
   <header>
     <div class="container">
       <a class="logo" href="/" aria-label="Movil home">
@@ -40,7 +40,7 @@
         <ul id="primary-nav" class="nav__links" data-open="false">
           <li><a href="/#hero">Home</a></li>
           <li><a href="/#about">About</a></li>
-          <li><a href="/#services">Services</a></li>
+          <li><a href="/services/">Services</a></li>
           <li><a href="/#projects">Projects</a></li>
           <li><a href="/#contact">Contact</a></li>
         </ul>
@@ -48,47 +48,126 @@
     </div>
   </header>
 
-  <section class="service-hero">
-    <div class="section-inner">
-      <p class="section-eyebrow">Services</p>
-      <h1>Signage & Branding Services in Maldives</h1>
-      <p>Explore our core services for businesses across Maldives.</p>
+  <section class="services-hero">
+    <div class="services-hero__inner">
+      <div class="services-hero__content">
+        <p class="section-eyebrow">Services</p>
+        <h1>Signage & Branding Services in Maldives</h1>
+        <p class="services-hero__lead">
+          From concept to installation, we build bold signage, branding, and LED experiences for
+          cafes, restaurants, shops, offices, resorts, and public spaces across the Maldives.
+        </p>
+        <div class="services-hero__cta">
+          <a class="btn" href="/#contact">Request a Quote</a>
+          <a class="btn btn--ghost" href="/#projects">View Projects</a>
+        </div>
+      </div>
+      <div class="services-hero__panel">
+        <div class="services-stat">
+          <span class="stat-label">Coverage</span>
+          <span class="stat-value">All Maldives</span>
+          <span class="stat-meta">Island-wide delivery & installation</span>
+        </div>
+        <div class="services-stat">
+          <span class="stat-label">Specialties</span>
+          <span class="stat-value">Signage + LED</span>
+          <span class="stat-meta">Fabrication, lighting, digital displays</span>
+        </div>
+        <div class="services-stat">
+          <span class="stat-label">Support</span>
+          <span class="stat-value">Design to Install</span>
+          <span class="stat-meta">Planning, production, and maintenance</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="service-content reveal-section">
+  <section class="services-list reveal-section">
     <div class="section-inner">
-      <div class="services-grid">
-        <article class="service-card">
+      <div class="services-list__header">
+        <div>
+          <p class="section-eyebrow">What we do</p>
+          <h2>Core Services</h2>
+        </div>
+        <p>
+          Choose a service to explore more details, recommended materials, and delivery timelines.
+        </p>
+      </div>
+      <div class="services-grid services-grid--rich">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-sign-hanging"></i></div>
           <h3>Signage Making</h3>
           <p>Custom signage for cafes, restaurants, shops, offices, and resorts.</p>
+          <ul class="service-card__meta">
+            <li>Design + fabrication</li>
+            <li>Installation & support</li>
+          </ul>
           <a href="/services/signage-maldives.html">View service</a>
         </article>
-        <article class="service-card">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-note-sticky"></i></div>
           <h3>Sticker Printing & Installation</h3>
           <p>High-quality sticker printing, decals, and professional installation.</p>
+          <ul class="service-card__meta">
+            <li>UV + eco solvent prints</li>
+            <li>Precise surface prep</li>
+          </ul>
           <a href="/services/sticker-printing-maldives.html">View service</a>
         </article>
-        <article class="service-card">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-tv"></i></div>
           <h3>LED Screens & Video Walls</h3>
           <p>Indoor and outdoor LED screens, video walls, and display solutions.</p>
+          <ul class="service-card__meta">
+            <li>Pixel pitch planning</li>
+            <li>Content guidance</li>
+          </ul>
           <a href="/services/led-screen-video-wall-maldives.html">View service</a>
         </article>
-        <article class="service-card">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-store"></i></div>
           <h3>Shop Signs</h3>
           <p>Premium storefront signs with lighting and custom finishes.</p>
+          <ul class="service-card__meta">
+            <li>Indoor + outdoor build</li>
+            <li>Weather-ready materials</li>
+          </ul>
           <a href="/services/shop-signs-maldives.html">View service</a>
         </article>
-        <article class="service-card">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-lightbulb"></i></div>
           <h3>LED Channel Letters</h3>
           <p>Illuminated channel letters for maximum brand visibility.</p>
+          <ul class="service-card__meta">
+            <li>Frontlit + backlit options</li>
+            <li>Custom color matching</li>
+          </ul>
           <a href="/services/led-channel-letters-maldives.html">View service</a>
         </article>
-        <article class="service-card">
+        <article class="service-card service-card--rich">
+          <div class="service-card__icon"><i class="fa-solid fa-compass-drafting"></i></div>
           <h3>Branding & Wayfinding</h3>
           <p>Brand rollout, interior branding, and wayfinding systems.</p>
+          <ul class="service-card__meta">
+            <li>Interior + exterior wayfinding</li>
+            <li>Multi-site brand systems</li>
+          </ul>
           <a href="/services/branding-maldives.html">View service</a>
         </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="services-cta dark-panel reveal-section">
+    <div class="section-inner services-cta__inner">
+      <div>
+        <p class="section-eyebrow">Get started</p>
+        <h2>Plan your next signage project</h2>
+        <p>Share your location, size, and timeline — we’ll handle the rest.</p>
+      </div>
+      <div class="services-cta__actions">
+        <a class="btn" href="mailto:sales@movillive.com">Request a Quote</a>
+        <a class="btn btn--ghost" href="https://wa.me/9607899922" target="_blank" rel="noopener noreferrer">WhatsApp Us</a>
       </div>
     </div>
   </section>
