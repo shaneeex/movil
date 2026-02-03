@@ -5,6 +5,7 @@ const PROJECTS_PER_PAGE = 12;
 const DEFAULT_PROJECT_CATEGORY = "General";
 const ADMIN_PROJECTS_PER_PAGE = PROJECTS_PER_PAGE;
 const FEATURED_PROJECTS_LIMIT = 4;
+const FEATURED_AUTOPLAY_INTERVAL = 6000;
 const prefetchedAssets = new Set();
 const CLOUDINARY_HOST_PATTERN = /res\.cloudinary\.com/i;
 const MEDIA_TRANSFORMS = {
@@ -24,6 +25,7 @@ let sectionObserver = null;
 let featuredMediaObserver = null;
 let heroBlendObserver = null;
 let ctaContactObserver = null;
+const featuredCarouselState = { index: 0, total: 0, timer: null };
 if (typeof window !== "undefined") {
   window.publicProjectsFilter = window.publicProjectsFilter || "All";
   window.publicFeaturedProjects = window.publicFeaturedProjects || [];
@@ -1597,16 +1599,36 @@ window.changeProjectsPage = changeProjectsPage;
 
 function renderFeaturedProjectsSection() {
   const section = $id("featuredProjects");
-  const grid = $id("featuredGrid");
-  if (!section || !grid) return;
+  const track = $id("featuredCarouselTrack");
+  const dotsRoot = $id("featuredCarouselDots");
+  const viewport = $id("featuredCarouselViewport");
+  if (!section || !track || !dotsRoot || !viewport) return;
   const projects = (window.publicFeaturedProjects || []).slice(0, FEATURED_PROJECTS_LIMIT);
   if (!projects.length) {
     section.hidden = true;
-    grid.innerHTML = "";
+    track.innerHTML = "";
+    dotsRoot.innerHTML = "";
+    stopFeaturedAutoplay();
+    featuredCarouselState.total = 0;
     return;
   }
   section.hidden = false;
-  grid.innerHTML = projects.map(buildFeaturedProjectCard).join("");
+  track.innerHTML = projects.map(buildFeaturedProjectCard).join("");
+  dotsRoot.innerHTML = projects
+    .map(
+      (_, idx) =>
+        `<button type="button" class="featured-dot" data-featured-dot="${idx}" aria-label="Go to featured project ${idx + 1}"></button>`,
+    )
+    .join("");
+  featuredCarouselState.total = projects.length;
+  setFeaturedSlide(0);
+  initFeaturedCarouselNav();
+  updateFeaturedNavState();
+  if (projects.length > 1) {
+    startFeaturedAutoplay();
+  } else {
+    stopFeaturedAutoplay();
+  }
 }
 
 function buildFeaturedProjectCard(project, index = 0) {
@@ -1624,21 +1646,135 @@ function buildFeaturedProjectCard(project, index = 0) {
   const altText = escapeHtml(`${project.title || "Project"} preview`);
   const focusAttr = buildMediaFocusAttr(heroMedia);
   return `
-    <article class="featured-card">
-      <div class="featured-card-media">
-        <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
-      </div>
-      <div class="featured-card-body">
-        <span class="featured-card-category">${categoryText}</span>
-        <h3>${titleText}</h3>
-        ${snippetHtml}
-        <a class="featured-card-link" href="${detailPath}">
-          View Project
-          <span aria-hidden="true">&#10140;</span>
-        </a>
-      </div>
-    </article>
+    <div class="featured-slide" data-featured-slide="${index}">
+      <article class="featured-card">
+        <div class="featured-card-media">
+          <img src="${heroThumb}" alt="${altText}" loading="lazy" decoding="async"${focusAttr}>
+        </div>
+        <div class="featured-card-body">
+          <span class="featured-card-category">${categoryText}</span>
+          <h3>${titleText}</h3>
+          ${snippetHtml}
+          <a class="featured-card-link" href="${detailPath}">
+            View Project
+            <span aria-hidden="true">&#10140;</span>
+          </a>
+        </div>
+      </article>
+    </div>
   `;
+}
+
+function setFeaturedSlide(targetIndex) {
+  const track = $id("featuredCarouselTrack");
+  if (!track) return;
+  const slides = track.querySelectorAll(".featured-slide");
+  if (!slides.length) return;
+  const total = slides.length;
+  const normalized = ((targetIndex % total) + total) % total;
+  featuredCarouselState.index = normalized;
+  track.style.transform = `translateX(-${normalized * 100}%)`;
+  const dotsRoot = $id("featuredCarouselDots");
+  const dots = dotsRoot ? dotsRoot.querySelectorAll(".featured-dot") : [];
+  dots.forEach((dot, idx) => {
+    dot.classList.toggle("is-active", idx === normalized);
+  });
+  updateFeaturedNavState();
+}
+
+function nextFeaturedSlide() {
+  setFeaturedSlide(featuredCarouselState.index + 1);
+}
+
+function prevFeaturedSlide() {
+  setFeaturedSlide(featuredCarouselState.index - 1);
+}
+
+function startFeaturedAutoplay() {
+  stopFeaturedAutoplay();
+  if (featuredCarouselState.total <= 1) return;
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  featuredCarouselState.timer = setInterval(nextFeaturedSlide, FEATURED_AUTOPLAY_INTERVAL);
+}
+
+function stopFeaturedAutoplay() {
+  if (featuredCarouselState.timer) {
+    clearInterval(featuredCarouselState.timer);
+    featuredCarouselState.timer = null;
+  }
+}
+
+function initFeaturedCarouselNav() {
+  if (typeof window === "undefined") return;
+  const carousel = $id("featuredCarousel");
+  if (carousel?.dataset.bound === "1") return;
+  if (carousel) carousel.dataset.bound = "1";
+  const prevBtn = document.querySelector("[data-featured-prev]");
+  const nextBtn = document.querySelector("[data-featured-next]");
+  prevBtn?.addEventListener("click", () => {
+    prevFeaturedSlide();
+    startFeaturedAutoplay();
+  });
+  nextBtn?.addEventListener("click", () => {
+    nextFeaturedSlide();
+    startFeaturedAutoplay();
+  });
+  const dotsRoot = $id("featuredCarouselDots");
+  dotsRoot?.addEventListener("click", (event) => {
+    const dot = event.target.closest("[data-featured-dot]");
+    if (!dot) return;
+    const idx = Number(dot.dataset.featuredDot);
+    if (!Number.isFinite(idx)) return;
+    setFeaturedSlide(idx);
+    startFeaturedAutoplay();
+  });
+  const viewport = $id("featuredCarouselViewport");
+  if (viewport && !viewport.dataset.bindSwipe) {
+    viewport.dataset.bindSwipe = "1";
+    let startX = 0;
+    let deltaX = 0;
+    let isDown = false;
+    const threshold = 40;
+    const onPointerDown = (event) => {
+      isDown = true;
+      deltaX = 0;
+      startX = event.clientX || 0;
+      stopFeaturedAutoplay();
+    };
+    const onPointerMove = (event) => {
+      if (!isDown) return;
+      deltaX = (event.clientX || 0) - startX;
+    };
+    const onPointerUp = () => {
+      if (!isDown) return;
+      isDown = false;
+      if (Math.abs(deltaX) > threshold) {
+        if (deltaX < 0) nextFeaturedSlide();
+        else prevFeaturedSlide();
+      }
+      startFeaturedAutoplay();
+    };
+    viewport.addEventListener("pointerdown", onPointerDown);
+    viewport.addEventListener("pointermove", onPointerMove);
+    viewport.addEventListener("pointerup", onPointerUp);
+    viewport.addEventListener("pointerleave", onPointerUp);
+    viewport.addEventListener("mouseenter", stopFeaturedAutoplay);
+    viewport.addEventListener("mouseleave", () => {
+      if (featuredCarouselState.total > 1) {
+        startFeaturedAutoplay();
+      }
+    });
+  }
+}
+
+function updateFeaturedNavState() {
+  const prevBtn = document.querySelector("[data-featured-prev]");
+  const nextBtn = document.querySelector("[data-featured-next]");
+  const disabled = featuredCarouselState.total <= 1;
+  if (prevBtn) prevBtn.disabled = disabled;
+  if (nextBtn) nextBtn.disabled = disabled;
 }
 /************ MODAL (for public view) ************/
 /************ MODAL (for public view) ************/

@@ -126,7 +126,16 @@
         <h2>Featured Projects</h2>
         <p>Handpicked highlights from recent collaborations.</p>
       </div>
-      <div class="featured-grid" id="featuredGrid"></div>
+      <div class="featured-carousel" id="featuredCarousel">
+        <div class="featured-carousel__viewport" id="featuredCarouselViewport">
+          <div class="featured-carousel__track" id="featuredCarouselTrack"></div>
+        </div>
+        <div class="featured-carousel__nav">
+          <button class="featured-carousel__btn" type="button" data-featured-prev aria-label="Previous featured project">&#10094;</button>
+          <div class="featured-carousel__dots" id="featuredCarouselDots"></div>
+          <button class="featured-carousel__btn" type="button" data-featured-next aria-label="Next featured project">&#10095;</button>
+        </div>
+      </div>
     </div>
   </section>
 
