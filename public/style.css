@@ -1532,21 +1532,30 @@ header .container {
 }
 
 .featured-carousel__nav {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 10, 18, 0.6);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  width: fit-content;
+  margin: 0 auto;
 }
 
 .featured-carousel__btn {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(6, 8, 16, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: radial-gradient(circle at 30% 20%, rgba(110, 247, 209, 0.35), rgba(8, 10, 18, 0.9));
   color: #fff;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .featured-carousel__btn:disabled {
@@ -1555,29 +1564,32 @@ header .container {
 }
 
 .featured-carousel__btn:not(:disabled):hover {
-  border-color: rgba(110, 247, 209, 0.6);
-  background: rgba(110, 247, 209, 0.12);
+  border-color: rgba(110, 247, 209, 0.7);
+  background: radial-gradient(circle at 30% 20%, rgba(110, 247, 209, 0.55), rgba(8, 10, 18, 0.9));
   transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(110, 247, 209, 0.2);
 }
 
 .featured-carousel__dots {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .featured-dot {
-  width: 9px;
-  height: 9px;
+  width: 18px;
+  height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.18);
   border: none;
   cursor: pointer;
-  transition: transform 0.25s ease, background 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.25s ease, background 0.2s ease, opacity 0.2s ease, width 0.25s ease;
   opacity: 0.7;
 }
 
 .featured-dot.is-active {
-  transform: scale(1.4);
+  width: 28px;
+  border-radius: 999px;
+  transform: scale(1.05);
   background: linear-gradient(120deg, #6ef7d1, #47cfff);
   opacity: 1;
 }
