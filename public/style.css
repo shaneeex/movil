@@ -1576,20 +1576,19 @@ header .container {
 }
 
 .featured-dot {
-  width: 18px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   cursor: pointer;
-  transition: transform 0.25s ease, background 0.2s ease, opacity 0.2s ease, width 0.25s ease;
+  transition: transform 0.25s ease, background 0.2s ease, opacity 0.2s ease, border-radius 0.25s ease;
   opacity: 0.7;
 }
 
 .featured-dot.is-active {
-  width: 28px;
   border-radius: 999px;
-  transform: scale(1.05);
+  transform: scale(1.15) rotate(45deg);
   background: linear-gradient(120deg, #6ef7d1, #47cfff);
   opacity: 1;
 }
