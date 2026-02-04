@@ -63,6 +63,24 @@ const HERO_FOREGROUND_OPACITY_DEFAULT = 1;
 const HERO_BACKGROUND_OPACITY_MIN = 0;
 const HERO_BACKGROUND_OPACITY_MAX = 1;
 const HERO_BACKGROUND_OPACITY_DEFAULT = 0.6;
+const HERO_VIDEO_OPACITY_MIN = 0.4;
+const HERO_VIDEO_OPACITY_MAX = 1;
+const HERO_VIDEO_OPACITY_DEFAULT = 1;
+const HERO_VIDEO_BRIGHTNESS_MIN = 0.7;
+const HERO_VIDEO_BRIGHTNESS_MAX = 1.3;
+const HERO_VIDEO_BRIGHTNESS_DEFAULT = 1;
+const HERO_VIDEO_SATURATION_MIN = 0.8;
+const HERO_VIDEO_SATURATION_MAX = 1.6;
+const HERO_VIDEO_SATURATION_DEFAULT = 1.1;
+const HERO_VIDEO_CONTRAST_MIN = 0.9;
+const HERO_VIDEO_CONTRAST_MAX = 1.3;
+const HERO_VIDEO_CONTRAST_DEFAULT = 1.05;
+const HERO_VIDEO_BLUR_MIN = 0;
+const HERO_VIDEO_BLUR_MAX = 8;
+const HERO_VIDEO_BLUR_DEFAULT = 0;
+const HERO_VIGNETTE_OPACITY_MIN = 0;
+const HERO_VIGNETTE_OPACITY_MAX = 1;
+const HERO_VIGNETTE_OPACITY_DEFAULT = 1;
 let adminHeroVideoState = null;
 
 function clampNumber(value, min, max) {
@@ -131,6 +149,50 @@ function normalizeHeroBackgroundOpacity(value) {
   );
 }
 
+function normalizeHeroVideoOpacity(value) {
+  return normalizeHeroOpacityValue(value, HERO_VIDEO_OPACITY_DEFAULT, HERO_VIDEO_OPACITY_MIN, HERO_VIDEO_OPACITY_MAX);
+}
+
+function normalizeHeroVideoBrightness(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_VIDEO_BRIGHTNESS_DEFAULT,
+    HERO_VIDEO_BRIGHTNESS_MIN,
+    HERO_VIDEO_BRIGHTNESS_MAX,
+  );
+}
+
+function normalizeHeroVideoSaturation(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_VIDEO_SATURATION_DEFAULT,
+    HERO_VIDEO_SATURATION_MIN,
+    HERO_VIDEO_SATURATION_MAX,
+  );
+}
+
+function normalizeHeroVideoContrast(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_VIDEO_CONTRAST_DEFAULT,
+    HERO_VIDEO_CONTRAST_MIN,
+    HERO_VIDEO_CONTRAST_MAX,
+  );
+}
+
+function normalizeHeroVideoBlur(value) {
+  return normalizeHeroOpacityValue(value, HERO_VIDEO_BLUR_DEFAULT, HERO_VIDEO_BLUR_MIN, HERO_VIDEO_BLUR_MAX);
+}
+
+function normalizeHeroVignetteOpacity(value) {
+  return normalizeHeroOpacityValue(
+    value,
+    HERO_VIGNETTE_OPACITY_DEFAULT,
+    HERO_VIGNETTE_OPACITY_MIN,
+    HERO_VIGNETTE_OPACITY_MAX,
+  );
+}
+
 function applyHeroOverlaySettings(heroVideo) {
   const overlay = document.querySelector("[data-hero-overlay]");
   const heroSection = document.querySelector(".hero");
@@ -144,6 +206,24 @@ function applyHeroOverlaySettings(heroVideo) {
   const normalizedBackgroundOpacity = heroVideo
     ? normalizeHeroBackgroundOpacity(heroVideo.backgroundOpacity)
     : HERO_BACKGROUND_OPACITY_DEFAULT;
+  const normalizedVideoOpacity = heroVideo
+    ? normalizeHeroVideoOpacity(heroVideo.videoOpacity)
+    : HERO_VIDEO_OPACITY_DEFAULT;
+  const normalizedVideoBrightness = heroVideo
+    ? normalizeHeroVideoBrightness(heroVideo.videoBrightness)
+    : HERO_VIDEO_BRIGHTNESS_DEFAULT;
+  const normalizedVideoSaturation = heroVideo
+    ? normalizeHeroVideoSaturation(heroVideo.videoSaturation)
+    : HERO_VIDEO_SATURATION_DEFAULT;
+  const normalizedVideoContrast = heroVideo
+    ? normalizeHeroVideoContrast(heroVideo.videoContrast)
+    : HERO_VIDEO_CONTRAST_DEFAULT;
+  const normalizedVideoBlur = heroVideo
+    ? normalizeHeroVideoBlur(heroVideo.videoBlur)
+    : HERO_VIDEO_BLUR_DEFAULT;
+  const normalizedVignetteOpacity = heroVideo
+    ? normalizeHeroVignetteOpacity(heroVideo.vignetteOpacity)
+    : HERO_VIGNETTE_OPACITY_DEFAULT;
   if (overlay) {
     HERO_OVERLAY_MODES.forEach((candidate) => {
       overlay.classList.toggle(`hero-video-overlay--${candidate}`, candidate === normalizedMode);
@@ -154,6 +234,12 @@ function applyHeroOverlaySettings(heroVideo) {
   if (heroSection) {
     heroSection.style.setProperty("--hero-foreground-overlay-opacity", String(normalizedForegroundOpacity));
     heroSection.style.setProperty("--hero-background-overlay-opacity", String(normalizedBackgroundOpacity));
+    heroSection.style.setProperty("--hero-video-opacity", String(normalizedVideoOpacity));
+    heroSection.style.setProperty("--hero-video-brightness", String(normalizedVideoBrightness));
+    heroSection.style.setProperty("--hero-video-saturation", String(normalizedVideoSaturation));
+    heroSection.style.setProperty("--hero-video-contrast", String(normalizedVideoContrast));
+    heroSection.style.setProperty("--hero-video-blur", `${normalizedVideoBlur}px`);
+    heroSection.style.setProperty("--hero-vignette-opacity", String(normalizedVignetteOpacity));
   }
 }
 
@@ -176,6 +262,54 @@ function setHeroForegroundOpacityPreview(value) {
 function setHeroBackgroundOpacityPreview(value) {
   const label = document.getElementById("heroBackgroundOpacityValue");
   const normalized = normalizeHeroBackgroundOpacity(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroVideoOpacityPreview(value) {
+  const label = document.getElementById("heroVideoOpacityValue");
+  const normalized = normalizeHeroVideoOpacity(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroVideoBrightnessPreview(value) {
+  const label = document.getElementById("heroVideoBrightnessValue");
+  const normalized = normalizeHeroVideoBrightness(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroVideoSaturationPreview(value) {
+  const label = document.getElementById("heroVideoSaturationValue");
+  const normalized = normalizeHeroVideoSaturation(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroVideoContrastPreview(value) {
+  const label = document.getElementById("heroVideoContrastValue");
+  const normalized = normalizeHeroVideoContrast(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 100)}%`;
+  }
+}
+
+function setHeroVideoBlurPreview(value) {
+  const label = document.getElementById("heroVideoBlurValue");
+  const normalized = normalizeHeroVideoBlur(value);
+  if (label) {
+    label.textContent = `${Math.round(normalized * 10) / 10}px`;
+  }
+}
+
+function setHeroVignetteOpacityPreview(value) {
+  const label = document.getElementById("heroVignetteOpacityValue");
+  const normalized = normalizeHeroVignetteOpacity(value);
   if (label) {
     label.textContent = `${Math.round(normalized * 100)}%`;
   }
@@ -215,12 +349,21 @@ function applyHeroVideoPreviewStyles(video, heroVideo) {
   if (!heroVideo) {
     video.style.removeProperty("object-position");
     video.style.removeProperty("transform");
+    video.style.removeProperty("filter");
+    video.style.removeProperty("opacity");
     return;
   }
   const { desktop } = getHeroVideoDisplay(heroVideo);
+  const videoOpacity = normalizeHeroVideoOpacity(heroVideo.videoOpacity);
+  const videoBrightness = normalizeHeroVideoBrightness(heroVideo.videoBrightness);
+  const videoSaturation = normalizeHeroVideoSaturation(heroVideo.videoSaturation);
+  const videoContrast = normalizeHeroVideoContrast(heroVideo.videoContrast);
+  const videoBlur = normalizeHeroVideoBlur(heroVideo.videoBlur);
   video.style.objectFit = "cover";
   video.style.objectPosition = `${desktop.x}% ${desktop.y}%`;
   video.style.transform = `scale(${desktop.zoom || 1})`;
+  video.style.opacity = String(videoOpacity);
+  video.style.filter = `brightness(${videoBrightness}) saturate(${videoSaturation}) contrast(${videoContrast}) blur(${videoBlur}px)`;
 }
 
 if (typeof window !== "undefined") {
@@ -2229,6 +2372,24 @@ function populateHeroDisplayForm(heroVideo) {
   const backgroundOpacity = hasVideo
     ? normalizeHeroBackgroundOpacity(heroVideo?.backgroundOpacity)
     : HERO_BACKGROUND_OPACITY_DEFAULT;
+  const videoOpacity = hasVideo
+    ? normalizeHeroVideoOpacity(heroVideo?.videoOpacity)
+    : HERO_VIDEO_OPACITY_DEFAULT;
+  const videoBrightness = hasVideo
+    ? normalizeHeroVideoBrightness(heroVideo?.videoBrightness)
+    : HERO_VIDEO_BRIGHTNESS_DEFAULT;
+  const videoSaturation = hasVideo
+    ? normalizeHeroVideoSaturation(heroVideo?.videoSaturation)
+    : HERO_VIDEO_SATURATION_DEFAULT;
+  const videoContrast = hasVideo
+    ? normalizeHeroVideoContrast(heroVideo?.videoContrast)
+    : HERO_VIDEO_CONTRAST_DEFAULT;
+  const videoBlur = hasVideo
+    ? normalizeHeroVideoBlur(heroVideo?.videoBlur)
+    : HERO_VIDEO_BLUR_DEFAULT;
+  const vignetteOpacity = hasVideo
+    ? normalizeHeroVignetteOpacity(heroVideo?.vignetteOpacity)
+    : HERO_VIGNETTE_OPACITY_DEFAULT;
   const foregroundInput = $id("heroForegroundOpacity");
   if (foregroundInput) {
     foregroundInput.value = foregroundOpacity;
@@ -2239,6 +2400,36 @@ function populateHeroDisplayForm(heroVideo) {
   }
   setHeroForegroundOpacityPreview(foregroundOpacity);
   setHeroBackgroundOpacityPreview(backgroundOpacity);
+  const videoOpacityInput = $id("heroVideoOpacity");
+  if (videoOpacityInput) {
+    videoOpacityInput.value = videoOpacity;
+  }
+  const videoBrightnessInput = $id("heroVideoBrightness");
+  if (videoBrightnessInput) {
+    videoBrightnessInput.value = videoBrightness;
+  }
+  const videoSaturationInput = $id("heroVideoSaturation");
+  if (videoSaturationInput) {
+    videoSaturationInput.value = videoSaturation;
+  }
+  const videoContrastInput = $id("heroVideoContrast");
+  if (videoContrastInput) {
+    videoContrastInput.value = videoContrast;
+  }
+  const videoBlurInput = $id("heroVideoBlur");
+  if (videoBlurInput) {
+    videoBlurInput.value = videoBlur;
+  }
+  const vignetteOpacityInput = $id("heroVignetteOpacity");
+  if (vignetteOpacityInput) {
+    vignetteOpacityInput.value = vignetteOpacity;
+  }
+  setHeroVideoOpacityPreview(videoOpacity);
+  setHeroVideoBrightnessPreview(videoBrightness);
+  setHeroVideoSaturationPreview(videoSaturation);
+  setHeroVideoContrastPreview(videoContrast);
+  setHeroVideoBlurPreview(videoBlur);
+  setHeroVignetteOpacityPreview(vignetteOpacity);
   if (fieldset) fieldset.disabled = !hasVideo;
   if (saveBtn) saveBtn.disabled = !hasVideo;
 }
@@ -2268,6 +2459,12 @@ function getHeroDisplayValuesFromForm() {
     overlayOpacity: normalizeHeroOverlayOpacity($id("heroOverlayOpacity")?.value),
     foregroundOpacity: normalizeHeroForegroundOpacity($id("heroForegroundOpacity")?.value),
     backgroundOpacity: normalizeHeroBackgroundOpacity($id("heroBackgroundOpacity")?.value),
+    videoOpacity: normalizeHeroVideoOpacity($id("heroVideoOpacity")?.value),
+    videoBrightness: normalizeHeroVideoBrightness($id("heroVideoBrightness")?.value),
+    videoSaturation: normalizeHeroVideoSaturation($id("heroVideoSaturation")?.value),
+    videoContrast: normalizeHeroVideoContrast($id("heroVideoContrast")?.value),
+    videoBlur: normalizeHeroVideoBlur($id("heroVideoBlur")?.value),
+    vignetteOpacity: normalizeHeroVignetteOpacity($id("heroVignetteOpacity")?.value),
   };
 }
 
@@ -2313,7 +2510,19 @@ async function handleHeroDisplayFormSubmit(event) {
     showAdminToast("Upload a hero loop before adjusting framing.", "error");
     return;
   }
-  const { display, overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity } = getHeroDisplayValuesFromForm();
+  const {
+    display,
+    overlayMode,
+    overlayOpacity,
+    foregroundOpacity,
+    backgroundOpacity,
+    videoOpacity,
+    videoBrightness,
+    videoSaturation,
+    videoContrast,
+    videoBlur,
+    vignetteOpacity,
+  } = getHeroDisplayValuesFromForm();
   const heroVideoPayload = {
     ...adminHeroVideoState,
     display,
@@ -2321,6 +2530,12 @@ async function handleHeroDisplayFormSubmit(event) {
     overlayOpacity,
     foregroundOpacity,
     backgroundOpacity,
+    videoOpacity,
+    videoBrightness,
+    videoSaturation,
+    videoContrast,
+    videoBlur,
+    vignetteOpacity,
   };
   try {
     setHeroDisplaySaving(true);
@@ -2429,8 +2644,31 @@ async function handleHeroVideoUpload(file) {
     if (media.type !== "video") {
       throw new Error("Hero background must be a video.");
     }
-    const { overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity } = getHeroDisplayValuesFromForm();
-    const mediaPayload = { ...media, overlayMode, overlayOpacity, foregroundOpacity, backgroundOpacity };
+    const {
+      overlayMode,
+      overlayOpacity,
+      foregroundOpacity,
+      backgroundOpacity,
+      videoOpacity,
+      videoBrightness,
+      videoSaturation,
+      videoContrast,
+      videoBlur,
+      vignetteOpacity,
+    } = getHeroDisplayValuesFromForm();
+    const mediaPayload = {
+      ...media,
+      overlayMode,
+      overlayOpacity,
+      foregroundOpacity,
+      backgroundOpacity,
+      videoOpacity,
+      videoBrightness,
+      videoSaturation,
+      videoContrast,
+      videoBlur,
+      vignetteOpacity,
+    };
     const res = await fetch("/api/admin/hero-video", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2509,6 +2747,30 @@ async function initAdminHeroLoopPanel() {
   const backgroundOpacityInput = $id("heroBackgroundOpacity");
   backgroundOpacityInput?.addEventListener("input", () => {
     setHeroBackgroundOpacityPreview(backgroundOpacityInput.value);
+  });
+  const videoOpacityInput = $id("heroVideoOpacity");
+  videoOpacityInput?.addEventListener("input", () => {
+    setHeroVideoOpacityPreview(videoOpacityInput.value);
+  });
+  const videoBrightnessInput = $id("heroVideoBrightness");
+  videoBrightnessInput?.addEventListener("input", () => {
+    setHeroVideoBrightnessPreview(videoBrightnessInput.value);
+  });
+  const videoSaturationInput = $id("heroVideoSaturation");
+  videoSaturationInput?.addEventListener("input", () => {
+    setHeroVideoSaturationPreview(videoSaturationInput.value);
+  });
+  const videoContrastInput = $id("heroVideoContrast");
+  videoContrastInput?.addEventListener("input", () => {
+    setHeroVideoContrastPreview(videoContrastInput.value);
+  });
+  const videoBlurInput = $id("heroVideoBlur");
+  videoBlurInput?.addEventListener("input", () => {
+    setHeroVideoBlurPreview(videoBlurInput.value);
+  });
+  const vignetteOpacityInput = $id("heroVignetteOpacity");
+  vignetteOpacityInput?.addEventListener("input", () => {
+    setHeroVignetteOpacityPreview(vignetteOpacityInput.value);
   });
   initHeroDisplayCollapse();
 }

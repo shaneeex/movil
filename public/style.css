@@ -1074,6 +1074,12 @@ header .container {
   background: radial-gradient(circle at 25% 25%, rgba(6, 9, 20, 0.88), rgba(2, 3, 8, 0.96));
   --hero-foreground-overlay-opacity: 1;
   --hero-background-overlay-opacity: 0.6;
+  --hero-video-opacity: 1;
+  --hero-video-brightness: 1;
+  --hero-video-saturation: 1.1;
+  --hero-video-contrast: 1.05;
+  --hero-video-blur: 0px;
+  --hero-vignette-opacity: 1;
 }
 
 .hero-background {
@@ -1106,6 +1112,7 @@ header .container {
   background:
     linear-gradient(180deg, rgba(5, 7, 14, 0.65) 0%, rgba(5, 7, 14, 0) 28%),
     linear-gradient(0deg, rgba(5, 7, 14, 0.78) 0%, rgba(5, 7, 14, 0) 32%);
+  opacity: var(--hero-vignette-opacity, 1);
   pointer-events: none;
   z-index: 2;
 }
@@ -1115,8 +1122,12 @@ header .container {
   height: 100%;
   object-fit: cover;
   object-position: var(--hero-video-desktop-position, 50% 50%);
-  opacity: 1;
-  filter: saturate(1.1) contrast(1.05);
+  opacity: var(--hero-video-opacity, 1);
+  filter:
+    brightness(var(--hero-video-brightness, 1))
+    saturate(var(--hero-video-saturation, 1.1))
+    contrast(var(--hero-video-contrast, 1.05))
+    blur(var(--hero-video-blur, 0px));
   transform: scale(var(--hero-video-desktop-scale, 1));
   transition:
     opacity 0.55s ease,
@@ -1126,7 +1137,11 @@ header .container {
 }
 
 .hero-video-layer.hero-video--loading video {
-  filter: blur(10px) saturate(1.15);
+  filter:
+    brightness(var(--hero-video-brightness, 1))
+    saturate(calc(var(--hero-video-saturation, 1.1) + 0.05))
+    contrast(var(--hero-video-contrast, 1.05))
+    blur(calc(var(--hero-video-blur, 0px) + 10px));
   opacity: 0.7;
   transform: scale(calc(var(--hero-video-desktop-scale, 1) + 0.02));
 }
