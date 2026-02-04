@@ -1030,8 +1030,8 @@ function initHeroParallax() {
     parallaxTargets.forEach((node) => {
       const depth = Number.parseFloat(node.dataset.depth || "0");
       if (!Number.isFinite(depth)) return;
-      const translateX = (currentX * depth * 48).toFixed(2);
-      const translateY = (currentY * depth * 36).toFixed(2);
+      const translateX = (currentX * depth * 28).toFixed(2);
+      const translateY = (currentY * depth * 20).toFixed(2);
       node.style.transform = `translate3d(${translateX}px, ${translateY}px, 0)`;
     });
     heroParallaxFrame = requestAnimationFrame(animate);
@@ -1108,6 +1108,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
   }
   if (!heroVideo?.url) {
     shell.classList.add("hero-video--empty");
+    shell.classList.remove("hero-video--loading");
     if (video.getAttribute("src")) {
       video.removeAttribute("src");
       try {
@@ -1121,6 +1122,7 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
     return null;
   }
   shell.classList.remove("hero-video--empty");
+  shell.classList.add("hero-video--loading");
   if (heroVideo.thumbnail) {
     video.poster = heroVideo.thumbnail;
   }
@@ -1131,6 +1133,15 @@ async function loadHeroAmbientVideo({ force = false, payload } = {}) {
     } catch {
       /* noop */
     }
+  }
+  const handleHeroReady = () => {
+    shell.classList.remove("hero-video--loading");
+  };
+  if (video.readyState >= 2) {
+    handleHeroReady();
+  } else {
+    video.addEventListener("loadeddata", handleHeroReady, { once: true });
+    video.addEventListener("canplay", handleHeroReady, { once: true });
   }
   video.muted = true;
   video.loop = true;

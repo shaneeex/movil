@@ -1099,6 +1099,17 @@ header .container {
   z-index: -2;
 }
 
+.hero-video-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 14, 0.65) 0%, rgba(5, 7, 14, 0) 28%),
+    linear-gradient(0deg, rgba(5, 7, 14, 0.78) 0%, rgba(5, 7, 14, 0) 32%);
+  pointer-events: none;
+  z-index: 2;
+}
+
 .hero-video-layer video {
   width: 100%;
   height: 100%;
@@ -1107,7 +1118,17 @@ header .container {
   opacity: 0.95;
   filter: saturate(1.1) contrast(1.05);
   transform: scale(var(--hero-video-desktop-scale, 1));
-  transition: opacity 0.4s ease, object-position 0.4s ease, transform 0.4s ease;
+  transition:
+    opacity 0.55s ease,
+    filter 0.55s ease,
+    object-position 0.4s ease,
+    transform 0.55s ease;
+}
+
+.hero-video-layer.hero-video--loading video {
+  filter: blur(10px) saturate(1.15);
+  opacity: 0.7;
+  transform: scale(calc(var(--hero-video-desktop-scale, 1) + 0.02));
 }
 
 .hero-video-layer.hero-video--empty {
@@ -1228,6 +1249,11 @@ header .container {
     object-fit: cover;
     object-position: var(--hero-video-mobile-position, 50% 35%);
     transform: scale(var(--hero-video-mobile-scale, 1.05));
+  }
+
+  .hero-content {
+    padding: 20px 18px;
+    border-radius: 22px;
   }
 }
 
@@ -2897,6 +2923,17 @@ padding: clamp(66px, 11vh, 100px) 0;
   gap: clamp(18px, 3vw, 26px);
   align-items: center;
   justify-items: center;
+  padding: clamp(22px, 3.2vw, 36px) clamp(22px, 4vw, 46px);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
+    rgba(6, 9, 18, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 28px 55px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   opacity: 0;
   transform: translateY(26px);
   animation: heroContentRise 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
