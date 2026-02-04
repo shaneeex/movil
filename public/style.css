@@ -1764,17 +1764,27 @@ header .container {
 }
 
 .services-cta__inner {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 20px;
+  text-align: center;
+}
+
+.services-cta__content {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  max-width: 560px;
+  margin: 0 auto;
 }
 
 .services-cta__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  justify-self: end;
 }
 
 @media (min-width: 1024px) {
@@ -1817,6 +1827,12 @@ header .container {
 
   .services-cta__inner {
     align-items: flex-start;
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .services-cta__actions {
+    justify-self: center;
   }
 }
 
