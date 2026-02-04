@@ -1251,10 +1251,6 @@ header .container {
     transform: scale(var(--hero-video-mobile-scale, 1.05));
   }
 
-  .hero-content {
-    padding: 20px 18px;
-    border-radius: 22px;
-  }
 }
 
 .hero-stripe {
@@ -2923,17 +2919,6 @@ padding: clamp(66px, 11vh, 100px) 0;
   gap: clamp(18px, 3vw, 26px);
   align-items: center;
   justify-items: center;
-  padding: clamp(22px, 3.2vw, 36px) clamp(22px, 4vw, 46px);
-  border-radius: 28px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
-    rgba(6, 9, 18, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    0 28px 55px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
   opacity: 0;
   transform: translateY(26px);
   animation: heroContentRise 1.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
