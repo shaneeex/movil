@@ -2353,6 +2353,7 @@ async function refreshAdminHeroVideo(payload) {
   const empty = $id("heroVideoEmptyState");
   const status = $id("heroVideoStatus");
   const updated = $id("heroVideoUpdated");
+  const previewWrap = $id("heroVideoPreview");
   if (!preview || !empty) return null;
   let heroVideo = payload;
   if (!heroVideo) {
@@ -2376,6 +2377,7 @@ async function refreshAdminHeroVideo(payload) {
     if (status) status.textContent = "No hero loop uploaded yet.";
     if (updated) updated.textContent = "";
     empty.hidden = false;
+    previewWrap?.classList.add("is-empty");
     preview.removeAttribute("src");
     try {
       preview.load();
@@ -2387,6 +2389,7 @@ async function refreshAdminHeroVideo(payload) {
   }
   adminHeroVideoState = heroVideo;
   empty.hidden = true;
+  previewWrap?.classList.remove("is-empty");
   if (status) status.textContent = heroVideo.originalFilename || "Uploaded video";
   if (updated) {
     updated.textContent = heroVideo.updatedAt
