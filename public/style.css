@@ -1092,7 +1092,7 @@ header .container {
   inset: 0;
   overflow: hidden;
   border-radius: 36px;
-  opacity: 0.9;
+  opacity: 1;
   transform: none;
   mix-blend-mode: normal;
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -1115,7 +1115,7 @@ header .container {
   height: 100%;
   object-fit: cover;
   object-position: var(--hero-video-desktop-position, 50% 50%);
-  opacity: 0.95;
+  opacity: 1;
   filter: saturate(1.1) contrast(1.05);
   transform: scale(var(--hero-video-desktop-scale, 1));
   transition:
