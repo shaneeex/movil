@@ -421,6 +421,29 @@
       min-width: 200px;
     }
 
+    .admin-filter-group select {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      background: #f4f6ff;
+      color: #0c111f;
+      appearance: none;
+      color-scheme: light;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+
+    .admin-filter-group select option {
+      background: #ffffff;
+      color: #0c111f;
+    }
+
+    .admin-filter-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(60, 208, 255, 0.15);
+    }
+
     .admin-filter-group label {
       font-size: 0.8rem;
       letter-spacing: 0.18em;
