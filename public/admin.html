@@ -803,39 +803,82 @@
       justify-content: flex-end;
     }
 
-    .modal {
+    body.admin-editing {
+      overflow: hidden;
+    }
+
+    body.admin-editing .admin-layout {
+      display: none;
+    }
+
+    .edit-page {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(2, 4, 10, 0.8);
-      backdrop-filter: blur(14px);
-      z-index: 999;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+      z-index: 1000;
+      background: rgba(2, 4, 10, 0.95);
+      padding: clamp(12px, 2.5vw, 28px);
+      align-items: stretch;
     }
 
-    .modal.show {
+    .edit-page.show {
       display: flex;
     }
 
-    .modal-content {
-      background: var(--panel);
-      border: 1px solid var(--border);
+    .edit-page-shell {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: clamp(18px, 2.5vw, 28px);
       border-radius: var(--radius-lg);
-      width: min(560px, 100%);
-      padding: clamp(20px, 4vw, 32px);
+      border: 1px solid var(--border);
+      background: var(--panel);
       box-shadow: 0 45px 90px rgba(0, 0, 0, 0.55);
-      position: relative;
     }
 
-    .close {
-      position: absolute;
-      top: 18px;
-      right: 24px;
-      font-size: 1.4rem;
-      cursor: pointer;
-      color: var(--muted);
+    .edit-page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .edit-page-title h2 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      letter-spacing: 0.08em;
+    }
+
+    .edit-page-title p {
+      margin: 0 0 6px;
+    }
+
+    .edit-page-subtitle {
+      margin: 6px 0 0;
+    }
+
+    .edit-page-content {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 12px;
+      scrollbar-gutter: stable;
+    }
+
+    .edit-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+
+    .edit-form textarea,
+    .edit-form #editMediaList,
+    .edit-form #editNewMedia,
+    .edit-form button {
+      grid-column: 1 / -1;
     }
 
     .media-list {
@@ -984,6 +1027,23 @@
 
       .admin-filter-group {
         min-width: 100%;
+      }
+      .edit-page {
+        padding: 0;
+      }
+
+      .edit-page-shell {
+        border-radius: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+      }
+
+      .edit-page-content {
+        padding-right: 0;
+      }
+
+      .edit-form {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -1301,29 +1361,37 @@
     </main>
   </div>
 
-  <!-- Edit Modal -->
-<div id="editModal" class="modal">
-  <div class="modal-content">
-    <span class="close" onclick="closeEditModal()">&times;</span>
-    <h3>Edit Project</h3>
-    <form id="editForm" class="admin-form">
-      <input type="text" id="editTitle" placeholder="Title" required />
-      <input type="text" id="editClient" placeholder="Client" />
-      <textarea id="editDescription" placeholder="Description"></textarea>
-      <input type="text" id="editCategory" placeholder="Category" />
-      <select id="editStatus" aria-label="Status">
-        <option value="published">Published</option>
-        <option value="draft">Draft</option>
-      </select>
-      <input type="text" id="editTags" placeholder="Tags (comma separated)" aria-label="Tags" />
-      <input type="number" id="editOrder" placeholder="Display order (optional)" aria-label="Display order" />
-      <input type="hidden" id="editHeroMedia" />
-      <div id="editMediaList" class="media-list"></div>
-      <input type="file" id="editNewMedia" multiple accept="image/*,video/*" />
-      <button type="submit">Save Changes</button>
-    </form>
-  </div>
-</div>
+  <!-- Edit Page -->
+  <section id="editPage" class="edit-page" hidden>
+    <div class="edit-page-shell">
+      <header class="edit-page-header">
+        <button type="button" class="admin-btn admin-btn--ghost" id="editBackBtn">Back to Projects</button>
+        <div class="edit-page-title">
+          <p class="panel-kicker">Project editor</p>
+          <h2 id="editPageTitle">Edit Project</h2>
+          <p class="muted edit-page-subtitle" id="editPageSubtitle"></p>
+        </div>
+      </header>
+      <div class="edit-page-content">
+        <form id="editForm" class="admin-form edit-form">
+          <input type="text" id="editTitle" placeholder="Title" required />
+          <input type="text" id="editClient" placeholder="Client" />
+          <textarea id="editDescription" placeholder="Description"></textarea>
+          <input type="text" id="editCategory" placeholder="Category" />
+          <select id="editStatus" aria-label="Status">
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+          <input type="text" id="editTags" placeholder="Tags (comma separated)" aria-label="Tags" />
+          <input type="number" id="editOrder" placeholder="Display order (optional)" aria-label="Display order" />
+          <input type="hidden" id="editHeroMedia" />
+          <div id="editMediaList" class="media-list"></div>
+          <input type="file" id="editNewMedia" multiple accept="image/*,video/*" />
+          <button type="submit" class="admin-btn">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </section>
 
   <div id="adminToastStack" class="toast-stack"></div>
   <script src="script.js" defer></script>

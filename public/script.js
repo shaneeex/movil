@@ -3121,7 +3121,7 @@ function renderAdminProjectsPage(page = 1) {
             </div>
             <button class="more-btn" aria-label="More" onclick="toggleCardMenu(event, ${originalIndex})">&#8942;</button>
             <div class="more-menu" id="menu-${originalIndex}">
-              <button onclick="openEditModal(${originalIndex})">Edit</button>
+              <button onclick="openEditPage(${originalIndex})">Edit</button>
               <button onclick="toggleProjectStatus(${originalIndex}, '${statusToggleValue}')">${statusToggleLabel}</button>
               <button onclick="toggleFeatured(${originalIndex}, ${featuredToggleValue})">${featuredToggleLabel}</button>
               <button onclick="deleteProject(${originalIndex})">Delete</button>
@@ -3429,7 +3429,7 @@ async function toggleProjectStatus(index, nextStatus = "published") {
   }
 }
 
-function openEditModal(index) {
+function openEditPage(index) {
   const numericIndex = Number(index);
   if (!Number.isInteger(numericIndex) || numericIndex < 0) {
     showAdminToast("Invalid project reference.", "error");
@@ -3469,21 +3469,32 @@ function openEditModal(index) {
   renderEditMediaList(project);
   refreshHeroIndicators();
 
-  const modal = $id("editModal");
-  if (modal) {
-    modal.style.display = "flex";
-    requestAnimationFrame(() => modal.classList.add("show"));
+  const page = $id("editPage");
+  const title = $id("editPageTitle");
+  const subtitle = $id("editPageSubtitle");
+  if (title) {
+    const projectTitle = project.title ? project.title.trim() : "";
+    title.textContent = projectTitle ? `Edit ${projectTitle}` : "Edit Project";
   }
+  if (subtitle) {
+    const clientLabel = project.client ? project.client.trim() : "";
+    subtitle.textContent = clientLabel ? `Client: ${clientLabel}` : "";
+  }
+  if (page) {
+    page.hidden = false;
+    requestAnimationFrame(() => page.classList.add("show"));
+    page.querySelector(".edit-page-content")?.scrollTo({ top: 0, behavior: "auto" });
+  }
+  document.body.classList.add("admin-editing");
 }
 
-function closeEditModal() {
-  const modal = $id("editModal");
-  if (modal) {
-    modal.classList.remove("show");
-    setTimeout(() => {
-      modal.style.display = "none";
-    }, 200);
+function closeEditPage() {
+  const page = $id("editPage");
+  if (page) {
+    page.classList.remove("show");
+    page.hidden = true;
   }
+  document.body.classList.remove("admin-editing");
   currentEditIndex = null;
   removedMedia = [];
   currentHeroMediaUrl = "";
@@ -3899,7 +3910,7 @@ document.getElementById("editForm")?.addEventListener("submit", async (e) => {
     if (!res.ok || !data?.ok) throw new Error(data?.error || "Edit failed");
 
     alert("Changes saved successfully!");
-    closeEditModal();
+    closeEditPage();
     if (newFilesInput) newFilesInput.value = "";
 
     try {
@@ -4060,9 +4071,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // Modal close for admin
-  window.addEventListener("click", (e) => {
-    const modal = document.getElementById("editModal");
-    if (e.target === modal) closeEditModal();
+    const editBackBtn = $id("editBackBtn");
+    editBackBtn?.addEventListener("click", closeEditPage);
   });
-});
